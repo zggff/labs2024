@@ -6,9 +6,6 @@ TARGET = main.out
 
 build: ${TARGET}
 
-run: build
-	./${TARGET}
-
 ${TARGET}: main.o ops.o
 	${CC} -o $@ $^
 
