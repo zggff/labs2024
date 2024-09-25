@@ -111,6 +111,11 @@ int main(int argc, const char *argw[]) {
     FILE *out = fopen(out_file_name, "w");
     if (!in || !out) {
         fprintf(stderr, "ERROR: failed to open files\n");
+        if (in)
+            fclose(in);
+        if (out)
+            fclose(out);
+        return 1;
     }
 
     char flags[] = {'d', 'i', 's', 'a'};
