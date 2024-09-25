@@ -71,6 +71,12 @@ int hanle_r(int argc, const char *argv[]) {
     FILE *out = fopen(argv[2], "w");
     if (!in[0] || !in[1] || !out) {
         fprintf(stderr, "ERROR: failed to open files\n");
+        if (in[0])
+            fclose(in[0]);
+        if (in[1])
+            fclose(in[1]);
+        if (out)
+            fclose(out);
         return 1;
     }
     bool ended[2] = {false, false};
@@ -96,6 +102,10 @@ int hanle_a(int argc, const char *argv[]) {
     FILE *out = fopen(argv[1], "w");
     if (!in || !out) {
         fprintf(stderr, "ERROR: failed to open files\n");
+        if (in)
+            fclose(in);
+        if (out)
+            fclose(out);
         return 1;
     }
     bool ended = false;
