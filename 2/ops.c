@@ -67,7 +67,8 @@ int calculate_series(int digits, double *res, double start, calc op) {
     return round_to_digits(digits, res);
 }
 
-int calculate_equation(int digits, double *res, calc op, double exp_res, double start, double end) {
+int calculate_equation_binsearch(int digits, double *res, calc op,
+                                 double exp_res, double start, double end) {
     if (digits <= 0 || res == NULL)
         return MATH_INVALID_INPUT;
     // n digits of precision => no changes in the n+1 digit
@@ -88,4 +89,28 @@ int calculate_equation(int digits, double *res, calc op, double exp_res, double 
         }
     }
     return round_to_digits(digits, res);
+}
+
+int calculate_equation_linsearch(int digits, double *res, calc op,
+                                 double exp_res, double start, double end) {
+    if (digits <= 0 || res == NULL)
+        return MATH_INVALID_INPUT;
+    // n digits of precision => no changes in the n+1 digit
+    double epsilon = pow(10.0, -(digits + 1));
+
+    double op_res;
+    double min = 1000;
+    for (double x = start; x <= end; x += epsilon) {
+        int r = op(x, &op_res);
+        if (r != MATH_OKAY) {
+            return r;
+        }
+        if (fabs(op_res - exp_res) < min) {
+            *res = x;
+            min = fabs(op_res - exp_res);
+        }
+    }
+    if (min < epsilon)
+        return round_to_digits(digits, res);
+    return MATH_INVALID_INPUT;
 }

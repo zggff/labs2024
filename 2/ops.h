@@ -14,6 +14,7 @@ int factorial(int n, ll *res);
 int round_to_digits(int digits, double *res);
 int calculate_limit(int digits, double *res, calc op);
 int calculate_series(int digits, double *res, double start, calc op);
-int calculate_equation(int digits, double *res, calc op, double exp_res, double start, double end);
+int calculate_equation_binsearch(int digits, double *res, calc op, double exp_res, double start, double end);
+int calculate_equation_linsearch(int digits, double *res, calc op, double exp_res, double start, double end);
 
 #endif
