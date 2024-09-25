@@ -85,6 +85,10 @@ int main(int argc, const char *argw[]) {
     FILE *out = fopen(argw[2], "w");
     if (!in || !out) {
         fprintf(stderr, "ERROR: failed to open file\n");
+        if (in)
+            fclose(in);
+        if (out)
+            fclose(out);
         return 1;
     }
 
