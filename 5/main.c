@@ -21,8 +21,24 @@ int factorial(int n, double *res) {
     *res = 2;
     for (int i = 3; i <= n; i++) {
         *res *= i;
-        if (isnan(*res)) {
-            printf("\nnan\n\n");
+        if (isinf(*res)) {
+            return MATH_OVERFLOW;
+        }
+    }
+    return MATH_OKAY;
+}
+
+int factorial2(int n, double *res) {
+    if (n < 0)
+        return MATH_INVALID_INPUT;
+    if (n <= 1) {
+        *res = 1;
+        return MATH_OKAY;
+    }
+    *res = 1;
+    for (int i = n % 2 + 2; i <= n; i++) {
+        *res *= i;
+        if (isinf(*res)) {
             return MATH_OVERFLOW;
         }
     }
@@ -38,7 +54,8 @@ int round_to_digits(int digits, double *res) {
     return MATH_OKAY;
 }
 
-int calculate_series(double epsilon, double x, double *res, double start, calc op) {
+int calculate_series(double epsilon, double x, double *res, double start,
+                     calc op) {
     if (epsilon <= 0 || res == NULL)
         return MATH_INVALID_INPUT;
     // n digits of precision => no changes in the n+1 digit
@@ -78,7 +95,7 @@ int calc_c(double x, double n, double *res) {
     if (factorial(n, &fact) != MATH_OKAY ||
         factorial(3 * n, &fact3) != MATH_OKAY)
         return MATH_OVERFLOW;
-    *res = (pow(fact, 3) / fact3) * pow(3, 3 * n)  * pow(x, 2 * n);
+    *res = (pow(fact, 3) / fact3) * pow(3, 3 * n) * pow(x, 2 * n);
     if (isnan(*res))
         return MATH_OVERFLOW;
 
@@ -87,16 +104,11 @@ int calc_c(double x, double n, double *res) {
 
 int calc_d(double x, double n, double *res) {
     double fact2m;
-    double fact2m2;
     double fact2;
-    double fact22;
-    if (factorial(2 * n - 1, &fact2m) != MATH_OKAY ||
-        factorial(2 * n, &fact2) != MATH_OKAY)
+    if (factorial2(2 * n - 1, &fact2m) != MATH_OKAY ||
+        factorial2(2 * n, &fact2) != MATH_OKAY)
         return MATH_OVERFLOW;
-    if (factorial(fact2m, &fact2m2) != MATH_OKAY ||
-        factorial(fact2, &fact22) != MATH_OKAY)
-        return MATH_OVERFLOW;
-    *res = (fact2m2 / fact22) * pow(-1, n) * pow(x, 2 * n);
+    *res = (fact2m / fact2) * pow(-1, n) * pow(x, 2 * n);
     return MATH_OKAY;
 }
 
@@ -117,7 +129,6 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-
     int digits = ceil(fabs(log10(epsilon)));
 
     int status;
@@ -127,10 +138,10 @@ int main(int argc, char *argv[]) {
 
     for (int i = 0; i < (int)(sizeof(calcs) / sizeof(calc)); i++) {
         char c = 'a' + i;
-        if ((status = calculate_series(epsilon, x, &res, starts[i], calcs[i])) !=
-            MATH_OKAY) {
-            fprintf(stderr, "%c)\tERROR: %d\n", c, status);
-        }
+        status = calculate_series(epsilon, x, &res, starts[i], calcs[i]);
         printf("%c)\t%.*f\n", c, digits, res);
+        if (status) {
+            fprintf(stderr, "\tERROR: %d\n", status);
+        }
     }
 }
