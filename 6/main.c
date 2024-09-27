@@ -104,12 +104,16 @@ int calc_d(double x, double *y) {
 int main(int argc, char *argv[]) {
     if (argc <= 1) {
         fprintf(stderr, "ERROR: not enough args\n");
-        return -1;
+        return 1;
     }
     double epsilon;
     if (sscanf(argv[1], "%lf", &epsilon) != 1) {
         fprintf(stderr, "ERROR: epsilon must be numbers\n");
-        return -1;
+        return 1;
+    }
+    if (epsilon <= 0) {
+        fprintf(stderr, "ERROR: epsilon must be greater than 0\n");
+        return 1;
     }
 
     int digits = ceil(fabs(log10(epsilon)));
