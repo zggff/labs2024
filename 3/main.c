@@ -64,6 +64,10 @@ int handle_q(int argc, const char *argv[]) {
         fprintf(stderr, "ERROR: could not parse arguments as numbers\n");
         return 1;
     }
+    if (e <= 0) {
+        fprintf(stderr, "ERROR: epsilon must be positive\n");
+        return 1;
+    }
     for (int i = 0; i < 3; i++) {
         if (sscanf(argv[1 + i], "%f", &coef[i]) != 1) {
             fprintf(stderr, "ERROR: could not parse arguments as numbers\n");
@@ -113,6 +117,10 @@ int handle_t(int argc, const char *argv[]) {
         fprintf(stderr, "ERROR: could not parse arguments as numbers\n");
         return 1;
     }
+    if (e <= 0) {
+        fprintf(stderr, "ERROR: epsilon must be positive\n");
+        return 1;
+    }
     for (int i = 0; i < 3; i++) {
         if (sscanf(argv[1 + i], "%f", &sides[i]) != 1) {
             fprintf(stderr, "ERROR: could not parse arguments as numbers\n");
@@ -127,8 +135,8 @@ int handle_t(int argc, const char *argv[]) {
         printf("%f, %f, %f can be sides of a right-angled triangle\n", sides[0],
                sides[1], sides[2]);
     } else {
-        printf("%f, %f, %f can not be sides of a right-angled triangle\n", sides[0],
-               sides[1], sides[2]);
+        printf("%f, %f, %f can not be sides of a right-angled triangle\n",
+               sides[0], sides[1], sides[2]);
     }
 
     return 0;
