@@ -40,7 +40,7 @@ int handle_s(FILE *in, FILE *out) {
     do {
         c = fgetc(in);
         if (!(('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') ||
-              ('0' <= c && c <= '9') || (c == ' ')))
+              ('0' <= c && c <= '9') || (c == ' ') || (c=='\n')))
             count++;
 
         if (c == '\n') {
@@ -61,7 +61,7 @@ int handle_a(FILE *in, FILE *out) {
         }
         if (c == EOF)
             break;
-        fprintf(out, " 0x%x ", c);
+        fprintf(out, ":%x:", c);
     } ;
     return 0;
 }
