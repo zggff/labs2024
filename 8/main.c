@@ -16,7 +16,7 @@ int read_from_file(FILE *in, char *buffer, ll *number, int *base, bool *done) {
     int digit = 0;
     bool neg = false;
     *number = 0;
-    *base = 0;
+    *base = 1;
 
     while (true) {
         c = fgetc(in);
