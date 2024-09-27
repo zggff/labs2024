@@ -5,6 +5,8 @@
 
 typedef long long ll;
 
+#define STR_LEN 63 // long long is 64 bits - 1 bit for sign
+
 int convert_hex_digit_to_decimal(char c, int *res) {
     *res = c <= '9' ? c - '0' : c - 'A' + 10;
     return 0;
@@ -15,10 +17,20 @@ int read_from_file(FILE *in, char *buffer, ll *number, int *base, bool *done) {
     int i = 0;
     int digit = 0;
     bool neg = false;
+    bool started = false;
+    bool is_num = false;
     *number = 0;
     *base = 1;
 
     while (true) {
+        if (i > STR_LEN) {
+            buffer[i] = 0;
+            fprintf(stderr,
+                    "ERROR: overflow \"%s\". Number can't be longer than %d "
+                    "symbols\n",
+                    buffer, STR_LEN);
+            return 1;
+        }
         c = fgetc(in);
         if (c == EOF) {
             *done = true;
@@ -27,18 +39,25 @@ int read_from_file(FILE *in, char *buffer, ll *number, int *base, bool *done) {
         if (isspace(c)) {
             break;
         }
-        if (c == '-' && !neg) {
+        if (c == '-' && !neg && !started) {
             buffer[i++] = '-';
             neg = true;
             continue;
         }
 
+        if (c == '0' && !started) { // remove leading zeros
+            is_num = true;
+            continue;
+        }
+
         if (!isalnum(c)) {
-            buffer[i++] = c;
-            buffer[i] = 0;
-            fprintf(stderr, "ERROR: failed to parse number \"%s...\"\n", buffer);
+            buffer[i++] = c; // 8
+            buffer[i] = 0;   // 9
+            fprintf(stderr, "ERROR: failed to parse number \"%s...\"\n",
+                    buffer);
             return 1;
         }
+        started = true;
         if (isalpha(c)) {
             buffer[i] = toupper(c);
         } else {
@@ -49,7 +68,10 @@ int read_from_file(FILE *in, char *buffer, ll *number, int *base, bool *done) {
         *base = digit > *base ? digit : *base;
     }
     (*base)++;
+    if (is_num && i == 0)
+        buffer[i++] = '0';
     buffer[i] = 0;
+
     for (int j = neg; j < i; j++) {
         convert_hex_digit_to_decimal(buffer[j], &digit);
         if (*number > LLONG_MAX / *base ||
@@ -95,7 +117,7 @@ int main(int argc, const char *argw[]) {
     bool is_done = false;
     ll number;
     int base;
-    char buffer[128];
+    char buffer[STR_LEN + 2]; // + 1 termination + 1 for possible mistake
     int res = 0;
     do {
         res = read_from_file(in, buffer, &number, &base, &is_done);
