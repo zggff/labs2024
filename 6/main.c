@@ -38,9 +38,9 @@ int integrate_with_step(func f, double start, double end, long steps,
     double step = (end - start) / steps;
     double x0 = start;
     double x1 = x0 + step;
-    double y0;
-    double y1;
-    int res;
+    double y0 = 0;
+    double y1 = 0;
+    int res = 0;
 
     if ((res = calculate_breakpoint(f, x0, &y1))) {
         return res;
