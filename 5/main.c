@@ -139,9 +139,10 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < (int)(sizeof(calcs) / sizeof(calc)); i++) {
         char c = 'a' + i;
         status = calculate_series(epsilon, x, &res, starts[i], calcs[i]);
-        printf("%c)\t%.*f\n", c, digits, res);
         if (status) {
-            fprintf(stderr, "\tERROR: %d\n", status);
+            fprintf(stderr, "%c)\tERROR: %d\n", c, status);
+            continue;
         }
+        printf("%c)\t%.*f\n", c, digits, res);
     }
 }
