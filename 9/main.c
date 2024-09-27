@@ -3,6 +3,15 @@
 #include <stdlib.h>
 #include <time.h>
 
+int print_array(const int *arr, int size) {
+    printf("[");
+    for (int i = 0; i < size; i++) {
+        printf("%d, ", arr[i]);
+    }
+    printf("]\n");
+    return 0;
+}
+
 int swap_min_max(int *min, int *max, int *arr, size_t size) {
     size_t min_pos = 0;
     size_t max_pos = 0;
@@ -16,18 +25,20 @@ int swap_min_max(int *min, int *max, int *arr, size_t size) {
     *min = arr[min_pos];
     int tmp = arr[min_pos];
     arr[min_pos] = arr[max_pos];
-    arr[max_pos] = arr[tmp];
+    arr[max_pos] = tmp;
     return 0;
 }
 
 int func_one(int a, int b) {
-    int arr[128];
+    int arr[5];
     int size = sizeof(arr) / sizeof(arr[0]);
     for (int i = 0; i < size; i++) {
         arr[i] = rand() % (b - a + 1) + a;
     }
     int max, min;
+    print_array(arr, sizeof(arr) / sizeof(arr[0]));
     swap_min_max(&min, &max, arr, size);
+    print_array(arr, sizeof(arr) / sizeof(arr[0]));
     printf("min=%d, max=%d\n", min, max);
     return 0;
 }
@@ -40,6 +51,13 @@ int func_two(void) {
     int *arr_c = malloc(size_a * sizeof(int));
     if (arr_a == NULL || arr_b == NULL || arr_c == NULL) {
         fprintf(stderr, "ERROR: failed to allocate memory\n");
+        if (arr_a)
+            free(arr_a);
+        if (arr_b)
+            free(arr_b);
+        if (arr_c)
+            free(arr_c);
+        return 1;
     }
     for (int i = 0; i < size_a; i++) {
         arr_a[i] = rand() % (1000 - (-1000) + 1) + (-1000);
@@ -48,18 +66,26 @@ int func_two(void) {
         arr_b[i] = rand() % (1000 - (-1000) + 1) + (-1000);
     }
     for (int i = 0; i < size_a; i++) {
-        int closest = 0;
-        for (int j = 0; j < size_b; j++) {
+        int closest = abs(arr_a[i] - arr_b[0]);
+        for (int j = 1; j < size_b; j++) {
             if (abs(arr_a[i] - arr_b[j]) < abs(arr_a[i] - closest))
                 closest = arr_b[j];
         }
         arr_c[i] = arr_a[i] + closest;
     }
 
+    print_array(arr_a, size_a);
+    print_array(arr_b, size_b);
+    print_array(arr_c, size_a);
+
+    free(arr_a);
+    free(arr_b);
+    free(arr_c);
     return 0;
 }
 
 int main(int argc, char *argv[]) {
+    srand((unsigned int)time(NULL));
     if (argc <= 1) {
         fprintf(stderr, "ERROR: no command line arguments provided\n");
         return 1;
