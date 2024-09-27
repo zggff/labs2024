@@ -1,24 +1,57 @@
 #include <math.h>
-#include <stdio.h>
 #include <stdbool.h>
 #include <limits.h>
 
 #include "calc_last.h"
 #include "ops.h"
 
-int calculate_limit_y(double epsilon, double *res) {
+int limit_sum(double epsilon, double m, double *res) {
     *res = 0;
-    (void)epsilon;
+    double k = 2;
+    double fact_m;
+    double fact_k;
+    double fact_mk;
+    double prev;
+    while (k <= m) {
+        prev = *res;
+        if (factorial_d(m, &fact_m) || factorial_d(k, &fact_k) ||
+            factorial_d(m - k, &fact_mk))
+            return MATH_OVERFLOW;
+        double diff = fact_m / fact_k * log(fact_k) * pow(-1, k) / k / fact_mk;
+        *res += diff;
+        k++;
+        if (fabs(*res - prev) < epsilon)
+            break;
+    }
+    return MATH_OKAY;
+}
+
+int calculate_limit_y(double epsilon, double *res) {
+    double sum = 0;
+    *res = 0;
+    double m = 4;
+    double prev = 0;
+    while (m < 60) {
+        prev = *res;
+        int r = limit_sum(epsilon, m, &sum);
+        if (sum < *res)
+            break;
+        *res = sum;
+        (void)r;
+        m++;
+        if (fabs(*res - prev) < epsilon)
+            break;
+    }
     return MATH_OKAY;
 }
 
 int series_sum(double epsilon, double *res) {
     double k = 1;
-    double k_max = pow(10, 10);
+    double k_max = pow(2, 16);
     *res = 0;
     double diff = 0;
     double n = 4;
-    while (true) {
+    while (k < k_max) {
         diff = 0;
         for (int i = 0; i < n; i++) {
             k++;
@@ -31,7 +64,7 @@ int series_sum(double epsilon, double *res) {
         if (n < pow(2, 16))
             n *= 2;
         *res += diff;
-        if (diff < epsilon || k > k_max)
+        if (diff < epsilon)
             break;
     };
     return MATH_OKAY;
@@ -109,7 +142,7 @@ int calculate_equation_y(double epsilon, double *res) {
     *res = 0;
     double expected = 0;
     equation_lim(epsilon, &expected);
-    calculate_equation_binsearch(epsilon, calc_e , false, expected, 0, 1, res);
+    calculate_equation_binsearch(epsilon, calc_e, false, expected, 0, 1, res);
     int digits = ceil(fabs(log10(epsilon)));
     return round_to_digits(digits, res);
 }
