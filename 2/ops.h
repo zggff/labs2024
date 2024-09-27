@@ -11,10 +11,11 @@ enum MATH_STATUS {
 };
 
 int factorial(int n, ll *res);
+int factorial_d(int n, double *res);
 int round_to_digits(int digits, double *res);
-int calculate_limit(int digits, double *res, calc op);
-int calculate_series(int digits, double *res, double start, calc op);
-int calculate_equation_binsearch(int digits, double *res, calc op, double exp_res, double start, double end);
-int calculate_equation_linsearch(int digits, double *res, calc op, double exp_res, double start, double end);
+int calculate_limit(double epsilon, double *res, calc op);
+int calculate_series(double epsilon, double *res, double start, calc op);
+int calculate_equation_binsearch(double epsilon, double *res, calc op, double exp_res, double start, double end);
+int calculate_equation_linsearch(double epsilon, double *res, calc op, double exp_res, double start, double end);
 
 #endif

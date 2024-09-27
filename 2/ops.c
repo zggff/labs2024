@@ -22,6 +22,23 @@ int factorial(int n, ll *res) {
     return MATH_OKAY;
 }
 
+int factorial_d(int n, double *res) {
+    if (n < 0)
+        return MATH_INVALID_INPUT;
+    if (n <= 1) {
+        *res = 1;
+        return MATH_OKAY;
+    }
+    *res = 2;
+    for (int i = 3; i <= n; i++) {
+        *res *= i;
+        if (isinf(*res)) {
+            return MATH_OVERFLOW;
+        }
+    }
+    return MATH_OKAY;
+}
+
 int round_to_digits(int digits, double *res) {
     if (digits <= 0)
         return MATH_INVALID_INPUT;
@@ -31,29 +48,34 @@ int round_to_digits(int digits, double *res) {
     return MATH_OKAY;
 }
 
-int calculate_limit(int digits, double *res, calc op) {
-    if (digits <= 0 || res == NULL)
+int calculate_limit(double epsilon, double *res, calc op) {
+    if (epsilon <= 0 || res == NULL)
         return MATH_INVALID_INPUT;
     // n digits of precision => no changes in the n+1 digit
-    double epsilon = pow(10.0, -(digits + 1));
+    int digits = ceil(fabs(log10(epsilon)));
     double prev;
 
     double n = 1;
     do {
         prev = *res;
         int status = op(n, res);
-        if (status != MATH_OKAY)
+        if (status == MATH_OVERFLOW) {
+            *res = prev;
+            break;
+        }
+        if (status != MATH_OKAY) {
             return status;
+        }
         n *= 2;
     } while (fabs(*res - prev) >= epsilon);
     return round_to_digits(digits, res);
 }
 
-int calculate_series(int digits, double *res, double start, calc op) {
-    if (digits <= 0 || res == NULL)
+int calculate_series(double epsilon, double *res, double start, calc op) {
+    if (epsilon <= 0 || res == NULL)
         return MATH_INVALID_INPUT;
     // n digits of precision => no changes in the n+1 digit
-    double epsilon = pow(10.0, -(digits + 1));
+    int digits = ceil(fabs(log10(epsilon)));
     double diff = 0;
     *res = 0;
     int n = start;
@@ -67,12 +89,12 @@ int calculate_series(int digits, double *res, double start, calc op) {
     return round_to_digits(digits, res);
 }
 
-int calculate_equation_binsearch(int digits, double *res, calc op,
+int calculate_equation_binsearch(double epsilon, double *res, calc op,
                                  double exp_res, double start, double end) {
-    if (digits <= 0 || res == NULL)
+    if (epsilon <= 0 || res == NULL)
         return MATH_INVALID_INPUT;
     // n digits of precision => no changes in the n+1 digit
-    double epsilon = pow(10.0, -(digits + 1));
+    int digits = ceil(fabs(log10(epsilon)));
 
     double upper = end;
     double lower = start;
@@ -91,12 +113,13 @@ int calculate_equation_binsearch(int digits, double *res, calc op,
     return round_to_digits(digits, res);
 }
 
-int calculate_equation_linsearch(int digits, double *res, calc op,
+int calculate_equation_linsearch(double epsilon, double *res, calc op,
                                  double exp_res, double start, double end) {
-    if (digits <= 0 || res == NULL)
+    if (epsilon <= 0 || res == NULL)
         return MATH_INVALID_INPUT;
     // n digits of precision => no changes in the n+1 digit
-    double epsilon = pow(10.0, -(digits + 1));
+    // double epsilon = pow(10.0, -(digits + 1));
+    int digits = ceil(fabs(log10(epsilon)));
 
     double op_res;
     double min = 1000;
