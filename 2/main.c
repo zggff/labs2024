@@ -1,6 +1,8 @@
 #include <math.h>
 #include <stdio.h>
+
 #include "ops.h"
+#include "calc_last.h"
 
 int e_series(double n, double *res) {
     ll fact = 1;
@@ -94,7 +96,7 @@ int main(int argc, char *argv[]) {
         printf("limit\te=%.*f\n", digits, e);
     if (calculate_series(epsilon, 0, e_series, &e) == MATH_OKAY)
         printf("series\te=%.*f\n", digits, e);
-    if (calculate_equation_binsearch(epsilon, e_equation, 1, 2, 4, &e) ==
+    if (calculate_equation_binsearch(epsilon, e_equation, true, 1, 2, 4, &e) ==
         MATH_OKAY)
         printf("equati\te=%.*f\n", digits, e);
 
@@ -114,7 +116,7 @@ int main(int argc, char *argv[]) {
         printf("limit\tln=%.*f\n", digits, ln);
     if (calculate_series(epsilon, 1, ln_series, &ln) == MATH_OKAY)
         printf("series\tln=%.*f\n", digits, ln);
-    if (calculate_equation_binsearch(epsilon, ln_equation, 2, 0, 1, &ln) ==
+    if (calculate_equation_binsearch(epsilon, ln_equation, true, 2, 0, 1, &ln) ==
         MATH_OKAY)
         printf("equati\tln=%.*f\n", digits, ln);
 
@@ -125,9 +127,18 @@ int main(int argc, char *argv[]) {
         printf("limit\tsqrt=%.*f\n", digits, sqrt);
     if (calculate_series_mul(epsilon, 2, sqrt_series, &sqrt) == MATH_OKAY)
         printf("series\tsqrt=%.*f\n", digits, sqrt);
-    if (calculate_equation_binsearch(epsilon, sqrt_equation, 2, 1, 2, &sqrt) ==
+    if (calculate_equation_binsearch(epsilon, sqrt_equation, true, 2, 1, 2, &sqrt) ==
         MATH_OKAY)
         printf("equati\tsqrt=%.*f\n", digits, sqrt);
+
+    double y = 0;
+    printf("\n");
+    if (calculate_limit_y(epsilon, &y) == MATH_OKAY)
+        printf("limit\ty=%.*f\n", digits, y);
+    if (calculate_series_y(epsilon, &y) == MATH_OKAY)
+        printf("series\ty=%.*f\n", digits, y);
+    if (calculate_equation_y(epsilon, &y) == MATH_OKAY)
+        printf("equati\ty=%.*f\n", digits, y);
 
     return 0;
 }

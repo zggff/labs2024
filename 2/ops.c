@@ -131,7 +131,7 @@ int calculate_series_mul(double epsilon, double start, calc op, double *res) {
     return round_to_digits(digits, res);
 }
 
-int calculate_equation_binsearch(double epsilon, calc op, double exp_res,
+int calculate_equation_binsearch(double epsilon, calc op, bool inc, double exp_res,
                                  double start, double end, double *res) {
     if (epsilon <= 0 || res == NULL)
         return MATH_INVALID_INPUT;
@@ -146,7 +146,7 @@ int calculate_equation_binsearch(double epsilon, calc op, double exp_res,
         int r = op(*res, &op_res);
         if (r != MATH_OKAY)
             return r;
-        if (op_res > exp_res) {
+        if ((op_res > exp_res) ^ (!inc)) {
             upper = *res;
         } else {
             lower = *res;
