@@ -63,8 +63,7 @@ int integrate_with_step(func f, double start, double end, long steps,
 int integrate(func f, double start, double end, double epsilon, double *out) {
     long steps = 2;
     double prev = 0;
-    int digits = log10(epsilon) * -1;
-    epsilon = pow(10.0, -digits - 1);
+    int digits = ceil(fabs(log10(epsilon)));
 
     *out = 0;
     do {
@@ -113,7 +112,7 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    int digits = log10(epsilon) * -1;
+    int digits = ceil(fabs(log10(epsilon)));
 
     func funcs[] = {calc_a, calc_b, calc_c, calc_d};
     for (int i = 0; i < (int)(sizeof(funcs) / sizeof(func)); i++) {
