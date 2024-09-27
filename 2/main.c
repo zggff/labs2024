@@ -28,7 +28,7 @@ int pi_limit(double n, double *res) {
         factorial_d(2 * n, &n2_fac) != MATH_OKAY) {
         return MATH_OVERFLOW;
     }
-    *res = pow((n_fac * n_fac / n2_fac * pow(2, n*2)), 2) / n;
+    *res = pow((n_fac * n_fac / n2_fac * pow(2, n * 2)), 2) / n;
     return MATH_OKAY;
 }
 
@@ -58,6 +58,21 @@ int ln_equation(double n, double *res) {
     return MATH_OKAY;
 }
 
+int sqrt_limit(double n, double *res) {
+    *res = n - (n * n / 2) + 1;
+    return MATH_OKAY;
+}
+
+int sqrt_series(double n, double *res) {
+    *res = pow(2, pow(2, -n));
+    return MATH_OKAY;
+}
+
+int sqrt_equation(double n, double *res) {
+    *res = n * n;
+    return MATH_OKAY;
+}
+
 int main(int argc, char *argv[]) {
     if (argc <= 1) {
         fprintf(stderr, "ERROR: no epsilon provided\n");
@@ -75,33 +90,44 @@ int main(int argc, char *argv[]) {
     int digits = ceil(fabs(log10(epsilon)));
 
     double e = 0;
-    if (calculate_limit(epsilon, &e, e_limit) == MATH_OKAY)
+    if (calculate_limit(epsilon, e_limit, &e) == MATH_OKAY)
         printf("limit\te=%.*f\n", digits, e);
-    if (calculate_series(epsilon, &e, 0, e_series) == MATH_OKAY)
+    if (calculate_series(epsilon, 0, e_series, &e) == MATH_OKAY)
         printf("series\te=%.*f\n", digits, e);
-    if (calculate_equation_binsearch(epsilon, &e, e_equation, 1, 2, 4) ==
+    if (calculate_equation_binsearch(epsilon, e_equation, 1, 2, 4, &e) ==
         MATH_OKAY)
         printf("equati\te=%.*f\n", digits, e);
 
     double pi = 0;
     printf("\n");
-    if (calculate_limit(epsilon, &pi, pi_limit) == MATH_OKAY)
+    if (calculate_limit(epsilon, pi_limit, &pi) == MATH_OKAY)
         printf("limit\tpi=%.*f\n", digits, pi);
-    if (calculate_series(epsilon, &pi, 1, pi_series) == MATH_OKAY)
+    if (calculate_series(epsilon, 1, pi_series, &pi) == MATH_OKAY)
         printf("series\tpi=%.*f\n", digits, pi);
-    if (calculate_equation_linsearch(epsilon, &pi, pi_equation, -1, 3, 4) ==
+    if (calculate_equation_linsearch(epsilon, pi_equation, -1, 3, 4, &pi) ==
         MATH_OKAY)
         printf("equati\tpi=%.*f\n", digits, pi);
 
     double ln = 0;
     printf("\n");
-    if (calculate_limit(epsilon, &ln, ln_limit) == MATH_OKAY)
+    if (calculate_limit(epsilon, ln_limit, &ln) == MATH_OKAY)
         printf("limit\tln=%.*f\n", digits, ln);
-    if (calculate_series(epsilon, &ln, 1, ln_series) == MATH_OKAY)
+    if (calculate_series(epsilon, 1, ln_series, &ln) == MATH_OKAY)
         printf("series\tln=%.*f\n", digits, ln);
-    if (calculate_equation_binsearch(epsilon, &ln, ln_equation, 2, 0, 1) ==
+    if (calculate_equation_binsearch(epsilon, ln_equation, 2, 0, 1, &ln) ==
         MATH_OKAY)
         printf("equati\tln=%.*f\n", digits, ln);
+
+    double sqrt = 0;
+    printf("\n");
+    if (calculate_limit_based_on_prev(epsilon, -0.5, sqrt_limit, &sqrt) ==
+        MATH_OKAY)
+        printf("limit\tsqrt=%.*f\n", digits, sqrt);
+    if (calculate_series_mul(epsilon, 2, sqrt_series, &sqrt) == MATH_OKAY)
+        printf("series\tsqrt=%.*f\n", digits, sqrt);
+    if (calculate_equation_binsearch(epsilon, sqrt_equation, 2, 1, 2, &sqrt) ==
+        MATH_OKAY)
+        printf("equati\tsqrt=%.*f\n", digits, sqrt);
 
     return 0;
 }

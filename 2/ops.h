@@ -13,9 +13,14 @@ enum MATH_STATUS {
 int factorial(int n, ll *res);
 int factorial_d(int n, double *res);
 int round_to_digits(int digits, double *res);
-int calculate_limit(double epsilon, double *res, calc op);
-int calculate_series(double epsilon, double *res, double start, calc op);
-int calculate_equation_binsearch(double epsilon, double *res, calc op, double exp_res, double start, double end);
-int calculate_equation_linsearch(double epsilon, double *res, calc op, double exp_res, double start, double end);
+int calculate_limit(double epsilon, calc op, double *res);
+int calculate_limit_based_on_prev(double epsilon, double start, calc op,
+                                  double *res);
+int calculate_series(double epsilon, double start, calc op, double *res);
+int calculate_series_mul(double epsilon, double start, calc op, double *res);
+int calculate_equation_binsearch(double epsilon, calc op, double exp_res,
+                                 double start, double end, double *res);
+int calculate_equation_linsearch(double epsilon, calc op, double exp_res,
+                                 double start, double end, double *res);
 
 #endif

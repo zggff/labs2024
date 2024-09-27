@@ -48,7 +48,7 @@ int round_to_digits(int digits, double *res) {
     return MATH_OKAY;
 }
 
-int calculate_limit(double epsilon, double *res, calc op) {
+int calculate_limit(double epsilon, calc op, double *res) {
     if (epsilon <= 0 || res == NULL)
         return MATH_INVALID_INPUT;
     // n digits of precision => no changes in the n+1 digit
@@ -71,14 +71,36 @@ int calculate_limit(double epsilon, double *res, calc op) {
     return round_to_digits(digits, res);
 }
 
-int calculate_series(double epsilon, double *res, double start, calc op) {
+int calculate_limit_based_on_prev(double epsilon, double start, calc op,
+                                  double *res) {
+    if (epsilon <= 0 || res == NULL)
+        return MATH_INVALID_INPUT;
+    // n digits of precision => no changes in the n+1 digit
+    int digits = ceil(fabs(log10(epsilon)));
+    double prev;
+    *res = start;
+    do {
+        prev = *res;
+        int status = op(prev, res);
+        if (status == MATH_OVERFLOW) {
+            *res = prev;
+            break;
+        }
+        if (status != MATH_OKAY) {
+            return status;
+        }
+    } while (fabs(*res - prev) >= epsilon);
+    return round_to_digits(digits, res);
+}
+
+int calculate_series(double epsilon, double start, calc op, double *res) {
     if (epsilon <= 0 || res == NULL)
         return MATH_INVALID_INPUT;
     // n digits of precision => no changes in the n+1 digit
     int digits = ceil(fabs(log10(epsilon)));
     double diff = 0;
     *res = 0;
-    int n = start;
+    double n = start;
     do {
         int status = op(n, &diff);
         if (status != MATH_OKAY)
@@ -89,8 +111,28 @@ int calculate_series(double epsilon, double *res, double start, calc op) {
     return round_to_digits(digits, res);
 }
 
-int calculate_equation_binsearch(double epsilon, double *res, calc op,
-                                 double exp_res, double start, double end) {
+int calculate_series_mul(double epsilon, double start, calc op, double *res) {
+    if (epsilon <= 0 || res == NULL)
+        return MATH_INVALID_INPUT;
+    // n digits of precision => no changes in the n+1 digit
+    int digits = ceil(fabs(log10(epsilon)));
+    double diff = 0;
+    *res = 1;
+    double prev = 1;
+    double n = start;
+    do {
+        prev = *res;
+        int status = op(n, &diff);
+        if (status != MATH_OKAY)
+            return status;
+        *res *= diff;
+        n++;
+    } while (fabs(*res - prev) >= epsilon);
+    return round_to_digits(digits, res);
+}
+
+int calculate_equation_binsearch(double epsilon, calc op, double exp_res,
+                                 double start, double end, double *res) {
     if (epsilon <= 0 || res == NULL)
         return MATH_INVALID_INPUT;
     // n digits of precision => no changes in the n+1 digit
@@ -113,8 +155,8 @@ int calculate_equation_binsearch(double epsilon, double *res, calc op,
     return round_to_digits(digits, res);
 }
 
-int calculate_equation_linsearch(double epsilon, double *res, calc op,
-                                 double exp_res, double start, double end) {
+int calculate_equation_linsearch(double epsilon, calc op, double exp_res,
+                                 double start, double end, double *res) {
     if (epsilon <= 0 || res == NULL)
         return MATH_INVALID_INPUT;
     // n digits of precision => no changes in the n+1 digit
