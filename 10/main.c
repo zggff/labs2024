@@ -96,14 +96,14 @@ int main(void) {
             max = cur;
     }
     print_in_base(10, max, line);
-    printf("%s\n", line);
+    printf("base 10\t%s\n", line);
     print_in_base(9, max, line);
-    printf("%s\n", line);
+    printf("base 9\t%s\n", line);
     print_in_base(18, max, line);
-    printf("%s\n", line);
+    printf("base 18\t%s\n", line);
     print_in_base(27, max, line);
-    printf("%s\n", line);
+    printf("base 27\t%s\n", line);
     print_in_base(36, max, line);
-    printf("%s\n", line);
+    printf("base 36\t%s\n", line);
     return 0;
 }
