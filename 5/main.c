@@ -38,11 +38,11 @@ int round_to_digits(int digits, double *res) {
     return MATH_OKAY;
 }
 
-int calculate_series(int digits, double x, double *res, double start, calc op) {
-    if (digits <= 0 || res == NULL)
+int calculate_series(double epsilon, double x, double *res, double start, calc op) {
+    if (epsilon <= 0 || res == NULL)
         return MATH_INVALID_INPUT;
     // n digits of precision => no changes in the n+1 digit
-    double epsilon = pow(10.0, -(digits + 1));
+    int digits = ceil(fabs(log10(epsilon)));
     double diff = 0;
     *res = 0;
     int n = start;
@@ -103,17 +103,23 @@ int calc_d(double x, double n, double *res) {
 int main(int argc, char *argv[]) {
     if (argc <= 2) {
         fprintf(stderr, "ERROR: not enough args\n");
-        return -1;
+        return 1;
     }
     double epsilon;
     double x;
     if (sscanf(argv[1], "%lf", &epsilon) != 1 ||
         sscanf(argv[2], "%lf", &x) != 1) {
         fprintf(stderr, "ERROR: args must be numbers\n");
-        return -1;
+        return 1;
+    }
+    if (epsilon <= 0) {
+        fprintf(stderr, "ERROR: epsilon must be greater than 0\n");
+        return 1;
     }
 
-    int digits = fabs(log10(epsilon));
+
+    int digits = ceil(fabs(log10(epsilon)));
+
     int status;
     double res = 0;
     calc calcs[] = {calc_a, calc_b, calc_c, calc_d};
@@ -121,10 +127,10 @@ int main(int argc, char *argv[]) {
 
     for (int i = 0; i < (int)(sizeof(calcs) / sizeof(calc)); i++) {
         char c = 'a' + i;
-        if ((status = calculate_series(digits, x, &res, starts[i], calcs[i])) !=
+        if ((status = calculate_series(epsilon, x, &res, starts[i], calcs[i])) !=
             MATH_OKAY) {
             fprintf(stderr, "%c)\tERROR: %d\n", c, status);
         }
-        printf("%c)\t%f\n", c, res);
+        printf("%c)\t%.*f\n", c, digits, res);
     }
 }
