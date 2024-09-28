@@ -31,11 +31,16 @@ int handle_p(int x) {
 }
 
 int handle_s(int x) {
-    while (x > 0) {
-        int remainder = x % 16;
-        printf("%d ", remainder);
-        x /= 16;
+    bool started = false;
+    for (int i = sizeof(x) * 8 - 4; i >= 0; i -= 4) {
+        int digit =
+            (x & (1 << i | 1 << (i + 1) | 1 << (i + 2) | 1 << (i + 3))) >> i;
+        if (digit != 0)
+            started = true;
+        if (started)
+            printf("%d ", digit);
     }
+
     printf("\n");
     return 0;
 }
@@ -77,17 +82,17 @@ int handle_f(int x) {
     return 0;
 }
 
-
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
     if (argc < 3) {
         fprintf(stderr, "ERROR: operation and number must be both provided\n");
         return 1;
     }
     if (argc > 3) {
-        fprintf(stderr, "ERROR: program accepts only one number and one operation\n");
+        fprintf(stderr,
+                "ERROR: program accepts only one number and one operation\n");
         return 1;
     }
-    
+
     int x;
     if (sscanf(argv[1], "%d", &x) != 1) {
         fprintf(stderr, "ERROR: couldn't parse \"%s\" as number\n", argv[1]);
@@ -97,12 +102,14 @@ int main(int argc, char* argv[]) {
         fprintf(stderr, "ERROR: x must be a natural number\n");
         return 1;
     }
-    const char* flags[] = {"-h", "/h", "-p", "/p", "-s", "/s", "-e", "/e", "-a", "/a", "-f", "/f"};
-    const handle handles[] = {handle_h, handle_p, handle_s, handle_e, handle_a, handle_f};
+    const char *flags[] = {"-h", "/h", "-p", "/p", "-s", "/s",
+                           "-e", "/e", "-a", "/a", "-f", "/f"};
+    const handle handles[] = {handle_h, handle_p, handle_s,
+                              handle_e, handle_a, handle_f};
 
-    for (size_t i = 0; i < sizeof(flags)/sizeof(flags[0]); i++) {
+    for (size_t i = 0; i < sizeof(flags) / sizeof(flags[0]); i++) {
         if (strcmp(argv[2], flags[i]) == 0) {
-            return handles[i/2](x);
+            return handles[i / 2](x);
         }
     }
 
