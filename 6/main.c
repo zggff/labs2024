@@ -1,5 +1,6 @@
 #include <math.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 #define EPSILON 0.0000000001
 
@@ -101,11 +102,40 @@ int calc_d(double x, double *y) {
     return 0;
 }
 
+int validate_float(const char* s, bool *res) {
+    int dot_count = 0;
+    *res = 1;
+    for (; *s != 0; s++) {
+        if (*s == '.') {
+            dot_count++;
+            if (dot_count > 1) {
+                *res = 0;
+                return 0;
+            }
+            continue;
+        }
+        if (!('0' <= *s && *s <= '9'))
+        {
+            *res = 0;
+            return 0;
+        }
+    }
+    return 0;
+}
+
+
 int main(int argc, char *argv[]) {
     if (argc <= 1) {
         fprintf(stderr, "ERROR: not enough args\n");
         return 1;
     }
+    bool valid;
+    validate_float(argv[1], &valid);
+    if (!valid) {
+        fprintf(stderr, "ERROR: epsilon must be a number\n");
+        return 1;
+    }
+    
     double epsilon;
     if (sscanf(argv[1], "%lf", &epsilon) != 1) {
         fprintf(stderr, "ERROR: epsilon must be numbers\n");
