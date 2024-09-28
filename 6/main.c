@@ -112,7 +112,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     if (epsilon <= 0 || epsilon >= 1) {
-        fprintf(stderr, "ERROR: epsilon must be lesser than 1\n");
+        fprintf(stderr, "ERROR: epsilon must be in range (0, 1)\n");
         return 1;
     }
 
