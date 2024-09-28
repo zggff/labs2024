@@ -39,12 +39,10 @@ int write_lower_base4(char c, FILE *out) {
     }
     int digit = 0;
     int l = (int)log2(c) & ~(1);
-    putc(':', out);
     for (int i = l; i >= 0; i -= 2) {
         digit = (c & (1 << i | 1 << (i + 1))) >> i;
         putc('0' + digit, out);
     }
-    putc(':', out);
     (void)out;
     return 0;
 }
@@ -58,7 +56,7 @@ int write_lower(char c, FILE *out) {
 }
 
 int write_base8(char c, FILE *out) {
-    fprintf(out, ";%o;", c);
+    fprintf(out, "%o", c);
     return 0;
 }
 
