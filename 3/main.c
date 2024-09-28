@@ -127,6 +127,12 @@ int handle_t(int argc, const char *argv[]) {
             return 1;
         }
     }
+    for (int i = 0; i < 3; i++) {
+        if (sides[i] <= 0) {
+            fprintf(stderr, "ERROR: numbers must be positive\n");
+            return 1;
+        }
+    }
     int sol = 0;
     int r = handle_combinations(e, sides, check_triangle, &sol);
     if (r != 0)
