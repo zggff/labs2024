@@ -2,6 +2,21 @@
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
+#include <stdbool.h>
+
+int validate_int(const char *s, bool *res) {
+    *res = 1;
+    if (*s == '-')
+        s++;
+    for (; *s != 0; s++) {
+        if (!('0' <= *s && *s <= '9')) {
+            *res = 0;
+            return 0;
+        }
+    }
+    return 0;
+}
+
 
 int print_array(const int *arr, int size) {
     printf("[");
@@ -96,6 +111,18 @@ int main(int argc, char *argv[]) {
             return 1;
         }
         int a, b;
+        bool valid;
+        validate_int(argv[2], &valid);
+        if (!valid) {
+            fprintf(stderr, "ERROR: a must be a number\n");
+            return 1;
+        }
+        validate_int(argv[3], &valid);
+        if (!valid) {
+            fprintf(stderr, "ERROR: b must be a number\n");
+            return 1;
+        }
+
         if (sscanf(argv[2], "%d", &a) != 1 || sscanf(argv[3], "%d", &b) != 1) {
             fprintf(stderr, "ERROR: arguments must be numbers\n");
             return 1;
