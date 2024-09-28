@@ -1,8 +1,9 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
-#define MAX_LEN 64
+#define MAX_LEN 128
 
 typedef int (*handle)(FILE *in, FILE *out);
 
@@ -40,7 +41,7 @@ int handle_s(FILE *in, FILE *out) {
     do {
         c = fgetc(in);
         if (!(('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') ||
-              ('0' <= c && c <= '9') || (c == ' ') || (c=='\n')))
+              ('0' <= c && c <= '9') || (c == ' ') || (c == '\n')))
             count++;
 
         if (c == '\n') {
@@ -53,7 +54,7 @@ int handle_s(FILE *in, FILE *out) {
 
 int handle_a(FILE *in, FILE *out) {
     char c;
-    while(true) {
+    while (true) {
         c = fgetc(in);
         if ('0' <= c && c <= '9') {
             fputc(c, out);
@@ -62,7 +63,7 @@ int handle_a(FILE *in, FILE *out) {
         if (c == EOF)
             break;
         fprintf(out, ":%x:", c);
-    } ;
+    };
     return 0;
 }
 
@@ -90,19 +91,66 @@ int main(int argc, const char *argw[]) {
         fprintf(stderr, "ERROR: first argument must be a flag\n");
         return 1;
     }
-    char in_file_name[MAX_LEN];
-    char out_file_name[MAX_LEN];
+    int in_len = MAX_LEN;
+    int out_len = MAX_LEN;
+    char *in_file_name = malloc(in_len * sizeof(char));
+    char *out_file_name;
+    if (in_file_name == NULL) {
+        fprintf(stderr, "ERROR: failed to allocate memory\n");
+        return 0;
+    }
+
+    // char in_file_name[MAX_LEN];
+    // char out_file_name[MAX_LEN];
     int offset = 0;
 
-    strcpy(in_file_name, argw[2]);
+    const char *c = argw[2];
+    int i = 0;
+    for (; *c != 0; c++) {
+        in_file_name[i++] = *c;
+        if (i >= in_len) {
+            in_len *= 2;
+            in_file_name = realloc(in_file_name, in_len * sizeof(char));
+            if (in_file_name == NULL) {
+                fprintf(stderr, "ERROR: failed to allocate memory\n");
+                return 0;
+            }
+        }
+    }
+
     if (argw[1][1] == 'n') {
         if (argc < 4) {
             fprintf(stderr, "ERROR: not enough arguments provided\n");
             return 1;
         }
         offset++;
-        strcpy(out_file_name, argw[3]);
+        out_file_name = malloc(out_len * sizeof(char));
+        if (out_file_name == NULL) {
+            fprintf(stderr, "ERROR: failed to allocate memory\n");
+            return 0;
+        }
+
+        const char *c = argw[3];
+        int i = 0;
+        for (; *c != 0; c++) {
+            out_file_name[i++] = *c;
+            if (i >= in_len) {
+                out_len *= 2;
+                out_file_name = realloc(in_file_name, out_len * sizeof(char));
+                if (in_file_name == NULL) {
+                    fprintf(stderr, "ERROR: failed to allocate memory\n");
+                    return 0;
+                }
+            }
+        }
+
     } else {
+        out_len = in_len + 4;
+        out_file_name = malloc(out_len * sizeof(char));
+        if (in_file_name == NULL) {
+            fprintf(stderr, "ERROR: failed to allocate memory\n");
+            return 0;
+        }
         strcpy(out_file_name, "out_");
         strcpy(out_file_name + 4, in_file_name);
     }
