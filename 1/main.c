@@ -5,6 +5,19 @@
 
 typedef int (*handle)(int x);
 
+int validate_int(const char *s, bool *res) {
+    *res = 1;
+    if (*s == '-')
+        s++;
+    for (; *s != 0; s++) {
+        if (!('0' <= *s && *s <= '9')) {
+            *res = 0;
+            return 0;
+        }
+    }
+    return 0;
+}
+
 int handle_h(int x) {
     bool found = false;
     for (int i = 1; i <= 100; i++) {
@@ -94,6 +107,12 @@ int main(int argc, char *argv[]) {
     }
 
     int x;
+    bool valid;
+    validate_int(argv[1], &valid);
+    if (!valid) {
+        fprintf(stderr, "ERROR: x must be a number\n");
+        return 1;
+    }
     if (sscanf(argv[1], "%d", &x) != 1) {
         fprintf(stderr, "ERROR: couldn't parse \"%s\" as number\n", argv[1]);
         return 1;
