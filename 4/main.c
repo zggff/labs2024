@@ -78,7 +78,7 @@ int copy_string(const char *source, int *size, char **res) {
     int i = 0;
     for (; *c != 0; c++) {
         (*res)[i++] = *c;
-        if (i >= (*size)) {
+        if (i >= (*size) - 1) {
             (*size) *= 2;
             *res = realloc(*res, *size * sizeof(char));
             if (*res == NULL) {
@@ -87,6 +87,7 @@ int copy_string(const char *source, int *size, char **res) {
             }
         }
     }
+    (*res)[i] = 0;
     return 0;
 }
 
@@ -149,6 +150,7 @@ int main(int argc, const char *argw[]) {
         strcpy(out_file_name + 4, in_file_name);
     }
 
+    printf("%s\n", in_file_name);
     FILE *in = fopen(in_file_name, "r");
     FILE *out = fopen(out_file_name, "w");
     if (!in || !out) {
