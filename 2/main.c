@@ -4,6 +4,27 @@
 #include "ops.h"
 #include "calc_last.h"
 
+int validate_float(const char* s, bool *res) {
+    int dot_count = 0;
+    *res = 1;
+    for (; *s != 0; s++) {
+        if (*s == '.') {
+            dot_count++;
+            if (dot_count > 1) {
+                *res = 0;
+                return 0;
+            }
+            continue;
+        }
+        if (!('0' <= *s && *s <= '9'))
+        {
+            *res = 0;
+            return 0;
+        }
+    }
+    return 0;
+}
+
 int e_series(double n, double *res) {
     ll fact = 1;
     if (factorial(n, &fact) != MATH_OKAY)
@@ -81,6 +102,12 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     double epsilon;
+    bool valid;
+    validate_float(argv[1], &valid);
+    if (!valid) {
+        fprintf(stderr, "ERROR: epsilon must be a number\n");
+        return 1;
+    }
     if (sscanf(argv[1], "%lf", &epsilon) != 1) {
         fprintf(stderr, "ERROR: epsilon must be a number\n");
         return 1;
