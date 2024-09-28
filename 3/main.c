@@ -191,7 +191,7 @@ int handle_t(int argc, const char *argv[]) {
     for (int i = 0; i < 3; i++) {
         validate_float(argv[1 + i], &valid);
         if (!valid) {
-            fprintf(stderr, "ERROR: nums must be a number\n");
+            fprintf(stderr, "ERROR: sides must be numbers\n");
             return 1;
         }
         if (sscanf(argv[1 + i], "%f", &sides[i]) != 1) {
