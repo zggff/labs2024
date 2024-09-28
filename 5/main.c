@@ -124,8 +124,8 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "ERROR: args must be numbers\n");
         return 1;
     }
-    if (epsilon <= 0) {
-        fprintf(stderr, "ERROR: epsilon must be greater than 0\n");
+    if (epsilon <= 0 || epsilon >= 1) {
+        fprintf(stderr, "ERROR: epsilon must be in range (0, 1)\n");
         return 1;
     }
 
