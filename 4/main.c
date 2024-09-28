@@ -3,8 +3,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define START_LEN 128
-
 typedef int (*handle)(FILE *in, FILE *out);
 
 int handle_d(FILE *in, FILE *out) {
@@ -67,30 +65,6 @@ int handle_a(FILE *in, FILE *out) {
     return 0;
 }
 
-int copy_string(const char *source, int *size, char **res) {
-    *res = malloc(*size * sizeof(char));
-    if (*res == NULL) {
-        fprintf(stderr, "ERROR: failed to allocate memory\n");
-        return 1;
-    }
-
-    const char *c = source;
-    int i = 0;
-    for (; *c != 0; c++) {
-        (*res)[i++] = *c;
-        if (i >= (*size) - 1) {
-            (*size) *= 2;
-            *res = realloc(*res, *size * sizeof(char));
-            if (*res == NULL) {
-                fprintf(stderr, "ERROR: failed to allocate memory\n");
-                return 1;
-            }
-        }
-    }
-    (*res)[i] = 0;
-    return 0;
-}
-
 int find_and_execute_subprogram(const char *arg, int offset, const char flags[],
                                 const handle handles[], FILE *in, FILE *out) {
     for (int i = 0; i < 4; i++) {
@@ -115,16 +89,18 @@ int main(int argc, const char *argw[]) {
         fprintf(stderr, "ERROR: first argument must be a flag\n");
         return 1;
     }
-    int in_len = START_LEN;
-    int out_len = START_LEN;
-    char *in_file_name;
-    char *out_file_name;
 
-    int offset = 0;
-
-    if (copy_string(argw[2], &in_len, &in_file_name)) {
+    int in_len = strlen(argw[2]);
+    char *in_file_name = malloc(in_len * sizeof(char));
+    if (in_file_name == NULL) {
+        fprintf(stderr, "ERROR: failed to allocate memory\n");
         return 1;
     }
+    strcpy(in_file_name, argw[2]);
+
+    int out_len;
+    char *out_file_name;
+    int offset = 0;
 
     if (argw[1][1] == 'n') {
         if (argc < 4) {
@@ -133,32 +109,37 @@ int main(int argc, const char *argw[]) {
             return 1;
         }
         offset++;
-        if (copy_string(argw[3], &out_len, &out_file_name)) {
-            free(in_file_name);
+        int out_len = strlen(argw[3]);
+        out_file_name = malloc(out_len * sizeof(char));
+        if (out_file_name == NULL) {
+            fprintf(stderr, "ERROR: failed to allocate memory\n");
             return 1;
         }
+        strcpy(out_file_name, argw[3]);
 
     } else {
         out_len = in_len + 4;
         out_file_name = malloc(out_len * sizeof(char));
-        if (in_file_name == NULL) {
+        if (out_file_name == NULL) {
             free(in_file_name);
             fprintf(stderr, "ERROR: failed to allocate memory\n");
             return 1;
         }
-        strcpy(out_file_name, "out_");
-        strcpy(out_file_name + 4, in_file_name);
+        strcat(out_file_name, "out_");
+        strcat(out_file_name, in_file_name);
     }
 
-    printf("%s\n", in_file_name);
     FILE *in = fopen(in_file_name, "r");
+    if (!in) {
+        fprintf(stderr, "ERROR: failed to open file %s\n", in_file_name);
+        free(in_file_name);
+        free(out_file_name);
+        return 1;
+    }
     FILE *out = fopen(out_file_name, "w");
-    if (!in || !out) {
-        fprintf(stderr, "ERROR: failed to open files\n");
-        if (in)
-            fclose(in);
-        if (out)
-            fclose(out);
+    if (!out) {
+        fprintf(stderr, "ERROR: failed to open file %s\n", out_file_name);
+        fclose(in);
         free(in_file_name);
         free(out_file_name);
         return 1;
