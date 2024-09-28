@@ -136,8 +136,8 @@ int main(int argc, const char *argw[]) {
             out_file_name[i++] = *c;
             if (i >= in_len) {
                 out_len *= 2;
-                out_file_name = realloc(in_file_name, out_len * sizeof(char));
-                if (in_file_name == NULL) {
+                out_file_name = realloc(out_file_name, out_len * sizeof(char));
+                if (out_file_name == NULL) {
                     fprintf(stderr, "ERROR: failed to allocate memory\n");
                     return 0;
                 }
