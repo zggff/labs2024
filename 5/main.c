@@ -1,6 +1,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 typedef long long ll;
 typedef int (*calc)(double x, double n, double *res);
@@ -112,6 +113,27 @@ int calc_d(double x, double n, double *res) {
     return MATH_OKAY;
 }
 
+int validate_float(const char* s, bool *res) {
+    int dot_count = 0;
+    *res = 1;
+    for (; *s != 0; s++) {
+        if (*s == '.') {
+            dot_count++;
+            if (dot_count > 1) {
+                *res = 0;
+                return 0;
+            }
+            continue;
+        }
+        if (!('0' <= *s && *s <= '9'))
+        {
+            *res = 0;
+            return 0;
+        }
+    }
+    return 0;
+}
+
 int main(int argc, char *argv[]) {
     if (argc <= 2) {
         fprintf(stderr, "ERROR: not enough args\n");
@@ -119,6 +141,19 @@ int main(int argc, char *argv[]) {
     }
     double epsilon;
     double x;
+
+    bool valid;
+    validate_float(argv[1], &valid);
+    if (!valid) {
+        fprintf(stderr, "ERROR: epsilon must be a number\n");
+        return 1;
+    }
+    validate_float(argv[2], &valid);
+    if (!valid) {
+        fprintf(stderr, "ERROR: x must be a number\n");
+        return 1;
+    }
+
     if (sscanf(argv[1], "%lf", &epsilon) != 1 ||
         sscanf(argv[2], "%lf", &x) != 1) {
         fprintf(stderr, "ERROR: args must be numbers\n");
