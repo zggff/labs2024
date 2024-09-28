@@ -26,8 +26,10 @@ int parse(int base, const char *line, long *out) {
         c++;
     }
 
+    long prev = 0;
     for (; *c != 0 && *c != '\n'; c++) {
         check_is_valid(base, *c, &is_valid);
+        prev = *out;
         if (!is_valid)
             return 1;
         *out *= base;
@@ -35,6 +37,10 @@ int parse(int base, const char *line, long *out) {
             *out += *c - '0';
         if ('A' <= *c)
             *out += *c - 'A' + 10;
+        if (*out < prev) {
+            fprintf(stderr, "ERROR: overflow\n");
+            return 1;
+        }
     }
     if (neg)
         *out *= -1;
@@ -86,6 +92,8 @@ int main(void) {
     long max = 0;
     long cur = 0;
     while (fgets(line, MAX_SIZE, stdin)) {
+        if (strcmp(line, "Stop\n") == 0)
+            break;
         if (line[0] == '\n')
             continue;
         if (parse(base, line, &cur)) {
