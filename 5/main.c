@@ -36,7 +36,7 @@ int factorial2(int n, double *res) {
         return MATH_OKAY;
     }
     *res = 1;
-    for (int i = n % 2 + 2; i <= n; i+=2) {
+    for (int i = n % 2 + 2; i <= n; i += 2) {
         *res *= i;
         if (isinf(*res)) {
             return MATH_OVERFLOW;
@@ -139,8 +139,12 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < (int)(sizeof(calcs) / sizeof(calc)); i++) {
         char c = 'a' + i;
         status = calculate_series(epsilon, x, &res, starts[i], calcs[i]);
-        if (status) {
-            fprintf(stderr, "%c)\tERROR: %d\n", c, status);
+        if (status == MATH_OVERFLOW) {
+            fprintf(stderr, "%c)\tERROR: overflow\n", c);
+            continue;
+        }
+        if (status == MATH_INVALID_INPUT) {
+            fprintf(stderr, "%c)\tERROR: invalid input\n", c);
             continue;
         }
         printf("%c)\t%.*f\n", c, digits, res);
