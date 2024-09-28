@@ -87,8 +87,8 @@ int handle_m(int argc, const char *argv[]) {
         fprintf(stderr, "ERROR: could not parse arguments as numbers\n");
         return 1;
     }
-    if (b == 0) {
-        fprintf(stderr, "ERROR: could not divide by zero\n");
+    if (b == 0 || a == 0) {
+        fprintf(stderr, "ERROR: numbers cannot be zero\n");
         return 1;
     }
     if (a % b == 0) {
