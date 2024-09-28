@@ -57,10 +57,7 @@ int handle_e(int x) {
 }
 
 int handle_a(int x) {
-    long sum = 0;
-    for (int i = 1; i <= x; i++) {
-        sum += i;
-    }
+    long sum = (1 + x) * (x) / 2;
     printf("%ld\n", sum);
     return 0;
 }
