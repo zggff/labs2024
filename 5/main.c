@@ -114,6 +114,8 @@ int calc_d(double x, double n, double *res) {
 }
 
 int validate_float(const char* s, bool *res) {
+    if (*s == '-')
+        s++;
     int dot_count = 0;
     *res = 1;
     for (; *s != 0; s++) {

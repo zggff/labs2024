@@ -102,7 +102,9 @@ int calc_d(double x, double *y) {
     return 0;
 }
 
-int validate_float(const char* s, bool *res) {
+int validate_float(const char *s, bool *res) {
+    if (*s == '-')
+        s++;
     int dot_count = 0;
     *res = 1;
     for (; *s != 0; s++) {
@@ -114,15 +116,13 @@ int validate_float(const char* s, bool *res) {
             }
             continue;
         }
-        if (!('0' <= *s && *s <= '9'))
-        {
+        if (!('0' <= *s && *s <= '9')) {
             *res = 0;
             return 0;
         }
     }
     return 0;
 }
-
 
 int main(int argc, char *argv[]) {
     if (argc <= 1) {
@@ -135,7 +135,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "ERROR: epsilon must be a number\n");
         return 1;
     }
-    
+
     double epsilon;
     if (sscanf(argv[1], "%lf", &epsilon) != 1) {
         fprintf(stderr, "ERROR: epsilon must be numbers\n");

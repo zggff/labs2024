@@ -5,6 +5,8 @@
 #include "calc_last.h"
 
 int validate_float(const char* s, bool *res) {
+    if (*s == '-')
+        s++;
     int dot_count = 0;
     *res = 1;
     for (; *s != 0; s++) {

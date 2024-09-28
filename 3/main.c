@@ -1,8 +1,44 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
-#include <time.h>
+#include <stdbool.h>
+
 typedef int (*handle)(int argc, const char *argv[]);
+
+int validate_float(const char *s, bool *res) {
+    int dot_count = 0;
+    *res = 1;
+    if (*s == '-')
+        s++;
+    for (; *s != 0; s++) {
+        if (*s == '.') {
+            dot_count++;
+            if (dot_count > 1) {
+                *res = 0;
+                return 0;
+            }
+            continue;
+        }
+        if (!('0' <= *s && *s <= '9')) {
+            *res = 0;
+            return 0;
+        }
+    }
+    return 0;
+}
+
+int validate_int(const char *s, bool *res) {
+    *res = 1;
+    if (*s == '-')
+        s++;
+    for (; *s != 0; s++) {
+        if (!('0' <= *s && *s <= '9')) {
+            *res = 0;
+            return 0;
+        }
+    }
+    return 0;
+}
 
 int solve_quadratic(float e, float a, float b, float c, int *out) {
     (void)e;
@@ -60,6 +96,13 @@ int handle_q(int argc, const char *argv[]) {
     }
     float e;
     float coef[3];
+    bool valid;
+    validate_float(argv[0], &valid);
+    if (!valid) {
+        fprintf(stderr, "ERROR: epsilon must be a number\n");
+        return 1;
+    }
+
     if (sscanf(argv[0], "%f", &e) != 1) {
         fprintf(stderr, "ERROR: could not parse arguments as numbers\n");
         return 1;
@@ -69,6 +112,11 @@ int handle_q(int argc, const char *argv[]) {
         return 1;
     }
     for (int i = 0; i < 3; i++) {
+        validate_float(argv[1 + i], &valid);
+        if (!valid) {
+            fprintf(stderr, "ERROR: nums must be a number\n");
+            return 1;
+        }
         if (sscanf(argv[1 + i], "%f", &coef[i]) != 1) {
             fprintf(stderr, "ERROR: could not parse arguments as numbers\n");
             return 1;
@@ -83,6 +131,18 @@ int handle_m(int argc, const char *argv[]) {
         return 1;
     }
     int a, b;
+    bool valid;
+    validate_int(argv[0], &valid);
+    if (!valid) {
+        fprintf(stderr, "ERROR: first number must be a number\n");
+        return 1;
+    }
+    validate_int(argv[1], &valid);
+    if (!valid) {
+        fprintf(stderr, "ERROR: second number must be a number\n");
+        return 1;
+    }
+
     if (sscanf(argv[0], "%d", &a) != 1 || sscanf(argv[1], "%d", &b) != 1) {
         fprintf(stderr, "ERROR: could not parse arguments as numbers\n");
         return 1;
@@ -113,6 +173,13 @@ int handle_t(int argc, const char *argv[]) {
     }
     float e;
     float sides[3];
+    bool valid;
+    validate_float(argv[0], &valid);
+    if (!valid) {
+        fprintf(stderr, "ERROR: epsilon must be a number\n");
+        return 1;
+    }
+
     if (sscanf(argv[0], "%f", &e) != 1) {
         fprintf(stderr, "ERROR: could not parse arguments as numbers\n");
         return 1;
@@ -122,6 +189,11 @@ int handle_t(int argc, const char *argv[]) {
         return 1;
     }
     for (int i = 0; i < 3; i++) {
+        validate_float(argv[1 + i], &valid);
+        if (!valid) {
+            fprintf(stderr, "ERROR: nums must be a number\n");
+            return 1;
+        }
         if (sscanf(argv[1 + i], "%f", &sides[i]) != 1) {
             fprintf(stderr, "ERROR: could not parse arguments as numbers\n");
             return 1;
