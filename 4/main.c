@@ -62,7 +62,7 @@ int handle_a(FILE *in, FILE *out) {
         }
         if (c == EOF)
             break;
-        fprintf(out, ":%x:", c);
+        fprintf(out, "%x", c);
     };
     return 0;
 }
