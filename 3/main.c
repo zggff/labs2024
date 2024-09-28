@@ -41,14 +41,13 @@ int validate_int(const char *s, bool *res) {
 }
 
 int solve_quadratic(float e, float a, float b, float c, int *out) {
-    (void)e;
     (void)out;
 
     // ax^2 + bx + c = 0
     printf("%f*x^2 + %f*x + %f = 0\n", a, b, c);
     float x1 = 0;
     float x2 = 0;
-    if (a == 0) { // bx + c = 0 => bx = c => x = c/b
+    if (fabs(a - 0) < e) { // bx + c = 0 => bx = c => x = c/b
         x1 = c / b;
         printf("\tx=%f\n", x1);
         return 0;
@@ -60,7 +59,7 @@ int solve_quadratic(float e, float a, float b, float c, int *out) {
         return 0;
     }
 
-    if (d == 0) { // x = -b/(2 * a)
+    if (fabs(d - 0) < e) { // x = -b/(2 * a)
         x1 = -b / (2 * a);
         printf("\tx=%f\n", x1);
         return 0;
