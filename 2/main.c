@@ -11,7 +11,7 @@ typedef enum RES {
     RES_INCORRECT = 2,
 } RES;
 
-RES func_1(double *res, int num, ...) {
+RES calc_average(double *res, int num, ...) {
     va_list valist;
     va_list valist_2;
     va_start(valist, num);
@@ -37,7 +37,7 @@ RES func_1(double *res, int num, ...) {
 
 int handle_1(void) {
     double average;
-    int res = func_1(&average, 4, 0.1, 0.2, 0.4, 1.1);
+    int res = calc_average(&average, 4, 0.1, 0.2, 0.4, 1.1);
     switch (res) {
     case 0:
         printf("%f\n", average);
