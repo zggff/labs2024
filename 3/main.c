@@ -3,14 +3,14 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-typedef enum STATUS {
+typedef enum Status {
     S_OK = 0,
     S_FILE_OPEN_ERROR = 1,
     S_FILE_READ_ERROR = 2,
     S_MALLOC_ERROR = 3,
-} STATUS;
+} Status;
 
-STATUS str_str(int *symbol, int *line, char **str, const char *sub) {
+Status str_str(int *symbol, int *line, char **str, const char *sub) {
     if (*sub == 0)
         return S_OK;
 
@@ -43,7 +43,7 @@ STATUS str_str(int *symbol, int *line, char **str, const char *sub) {
     return S_OK;
 }
 
-STATUS find_all_in_file(const char *sub, const char *fname) {
+Status find_all_in_file(const char *sub, const char *fname) {
     FILE *f = fopen(fname, "r");
     if (!f) {
         fprintf(stderr, "ERROR: failed to open file \"%s\"\n", fname);
@@ -84,7 +84,7 @@ STATUS find_all_in_file(const char *sub, const char *fname) {
     return S_OK;
 }
 
-STATUS find_all(const char *str, ...) {
+Status find_all(const char *str, ...) {
     va_list valist;
     va_start(valist, str);
     while (1) {
