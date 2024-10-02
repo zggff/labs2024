@@ -13,9 +13,7 @@ typedef enum RES {
 
 RES calc_average(double *res, int num, ...) {
     va_list valist;
-    va_list valist_2;
     va_start(valist, num);
-    va_copy(valist_2, valist);
     *res = 1;
     int i = 0;
     for (; i < num; i++) {
