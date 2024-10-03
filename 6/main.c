@@ -29,13 +29,16 @@ int advance_string(void **f, const char *s) {
         s2[j] = s[i];
         j++;
     }
-    s2[j] = '%';
-    j++;
-    s2[j] = 'n';
-    j++;
-    s2[j] = 0;
+
+    j += 2;
     int n = 0;
-    sscanf(*f, s2, &n);
+    do {
+        s2[j - 2] = '%';
+        s2[j - 1] = 'n';
+        s2[j] = 0;
+        sscanf(*f, s2, &n);
+        j--;
+    } while (n == 0 && j >= 2);
 
     if (n >= 0) {
         char *c = *f;
@@ -81,12 +84,13 @@ int scanf_general(void **f, scanner scan, vscanner vscan, const char *s,
     int len = strlen(s) + 1;
     char *str = malloc(len);
     if (!str)
-        return 1;
+        return -1;
     memcpy(str, s, len);
     char *ptr = str;
     char flags[] = {'c', 's', '[', 'd', 'i', 'u', 'o', 'x', 'X', 'n',
                     'a', 'A', 'e', 'E', 'f', 'F', 'g', 'G', 'p'};
     int flags_cnt = sizeof(flags) / sizeof(flags[0]);
+    int cnt = 0;
 
     while (str) {
         char *prev = str;
@@ -115,8 +119,11 @@ int scanf_general(void **f, scanner scan, vscanner vscan, const char *s,
 
         va_list copy;
         va_copy(copy, valist);
-        vscan(f, prev, copy);
+        int res = vscan(f, prev, copy);
         va_end(copy);
+        if (res != 1)
+            return cnt;
+        cnt++;
 
         if (prev[0] == '%') {
             for (; *prev != 0; prev++) {
@@ -160,8 +167,8 @@ int oversscanf(char *f, const char *s, ...) {
 int main(void) {
     char s[] = "13, 24";
     int a, b;
-    oversscanf(s, "%d, %d", &a, &b);
-    // sscanf(s, "%*d%n", &n);
-    printf("[%d] [%d]\n", a, b);
+    float f;
+    oversscanf(s, "%d, %d : %f", &a, &b, &f);
+    printf("%d %d %f\n", a, b, f);
     return 0;
 }
