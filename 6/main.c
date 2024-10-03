@@ -96,7 +96,6 @@ int scan_roman(void **f, scanner scan, seeker seek, int *n) {
 }
 
 int scan_zeckendorf(void **f, scanner scan, seeker seek, unsigned int *n) {
-    return 0;
 }
 
 int parse_digit(int *digit, int base, char c, char start) {
@@ -117,10 +116,12 @@ int scan_base(void **f, scanner scan, seeker seek, int *n, int base,
         base = 10;
 
     char c;
-    scan(f, "%c", &c);
+    if (!scan(f, "%c", &c))
+        return 0;
     bool neg = c == '-';
     if (neg)
-        scan(f, "%c", &c);
+        if (!scan(f, "%c", &c))
+            return 0;
 
     int digit = 0;
     int num = 0;
@@ -130,11 +131,12 @@ int scan_base(void **f, scanner scan, seeker seek, int *n, int base,
             break;
         }
         num = num * base + digit;
-        scan(f, "%c", &c);
+        if (!scan(f, "%c", &c))
+            return 1;
     }
     num = neg ? -num : num;
     *n = num;
-    return 0;
+    return 1;
 }
 
 int scanf_general(void **f, scanner scan, vscanner vscan, seeker seek,
@@ -167,13 +169,15 @@ int scanf_general(void **f, scanner scan, vscanner vscan, seeker seek,
         if (strncmp(prev, "%Cv", 3) == 0) {
             int *n = va_arg(valist, int *);
             int base = va_arg(valist, int);
-            scan_base(f, scan, seek, n, base, 'a');
+            if (!scan_base(f, scan, seek, n, base, 'a'))
+                break;
             prev += 3;
         }
         if (strncmp(prev, "%CV", 3) == 0) {
             int *n = va_arg(valist, int *);
             int base = va_arg(valist, int);
-            scan_base(f, scan, seek, n, base, 'A');
+            if (!scan_base(f, scan, seek, n, base, 'A'))
+                break;
             prev += 3;
         }
 
