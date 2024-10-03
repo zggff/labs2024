@@ -96,6 +96,39 @@ int scan_roman(void **f, scanner scan, seeker seek, int *n) {
 }
 
 int scan_zeckendorf(void **f, scanner scan, seeker seek, unsigned int *n) {
+    char c;
+    char c0 = '0';
+    if (!scan(f, "%c", &c))
+        return 0;
+
+    int b = 1;
+    int t = 1;
+    int a = 1;
+
+    int num = 0;
+
+    while (c) {
+        if (c != '0' && c != '1') {
+            seek(f);
+            break;
+        }
+        if (c == '1' && c0 == '1')
+            break;
+
+        if (c == '1') {
+            num += a;
+        }
+
+        t = a;
+        a += b;
+        b = t;
+
+        c0 = c;
+        if (!scan(f, "%c", &c))
+            break;
+    }
+    *n = num;
+    return 1;
 }
 
 int parse_digit(int *digit, int base, char c, char start) {
@@ -132,7 +165,7 @@ int scan_base(void **f, scanner scan, seeker seek, int *n, int base,
         }
         num = num * base + digit;
         if (!scan(f, "%c", &c))
-            return 1;
+            break;
     }
     num = neg ? -num : num;
     *n = num;
@@ -163,7 +196,9 @@ int scanf_general(void **f, scanner scan, vscanner vscan, seeker seek,
             prev += 3;
         }
         if (strncmp(prev, "%Zr", 3) == 0) {
-            va_arg(valist, unsigned int *);
+            unsigned int *n = va_arg(valist, unsigned int *);
+            if (!scan_zeckendorf(f, scan, seek, n))
+                break;
             prev += 3;
         }
         if (strncmp(prev, "%Cv", 3) == 0) {
@@ -235,16 +270,20 @@ int main(void) {
     int a, b, c;
     float f = 0;
     int r = 0;
-    // oversscanf(s, "%d, %d : %f", &a, &b, &f);
-    // printf("%d %d %f\n", a, b, f);
+    r = oversscanf(s, "%d, %d : %f", &a, &b, &f);
+    printf("%d\t%d %d %f\n", r, a, b, f);
 
     a = 0;
     b = 0;
     c = 0;
     f = 0;
     s = "ffe1, 100, -ZZ : 0.1";
-    // oversscanf(s, "%Cv", &a, 16, &b, 2, &c, 36, &f);
+    oversscanf(s, "%Cv", &a, 16, &b, 2, &c, 36, &f);
     r = oversscanf(s, "%Cv, %Cv, %CV : %f", &a, 16, &b, 2, &c, 36, &f);
     printf("%d\t%d %d %d %f\n", r, a, b, c, f);
+
+    s = "00101000011 : 123";
+    r = oversscanf(s, "%Zr : %d", &a, &b);
+    printf("%d\t%d %d\n", r, a, b);
     return 0;
 }
