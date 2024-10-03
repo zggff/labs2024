@@ -127,6 +127,40 @@ int print_in_base(void *f, printer p, int base, int val, char start) {
     return 0;
 }
 
+int parse_digit(int *digit, int base, char c, char start) {
+    if ('0' <= c && c <= '0' + base - 1) {
+        *digit = c - '0';
+        return 0;
+    }
+    if (start <= c && c <= start + base - 11) {
+        *digit = c - start + 10;
+        return 0;
+    }
+    return 1;
+}
+
+int print_from_base(void *f, printer p, int base, const char *s, char start) {
+    if (base < 2 || base > 36)
+        base = 10;
+    bool neg = *s == '-';
+    if (neg)
+        s++;
+
+    int digit = 0;
+    int num = 0;
+    for (; *s; s++) {
+        if (parse_digit(&digit, base, *s, start))
+            return p(f, "nan");
+        int prev = num;
+        num = num * base + digit;
+        if (num < prev)
+            return p(f, "overflow");
+    }
+    num = neg ? -num : num;
+    p(f, "%d", num);
+    return 0;
+}
+
 int printf_general(void *f, printer p, vprinter vp, const char *s,
                    va_list valist) {
     int len = strlen(s) + 1;
@@ -164,13 +198,15 @@ int printf_general(void *f, printer p, vprinter vp, const char *s,
             prev += 3;
         }
         if (strncmp(prev, "%to", 3) == 0) {
-            va_arg(valist, char *);
-            va_arg(valist, int);
+            char *s = va_arg(valist, char *);
+            int base = va_arg(valist, int);
+            print_from_base(f, p, base, s, 'a');
             prev += 3;
         }
         if (strncmp(prev, "%TO", 3) == 0) {
-            va_arg(valist, char *);
-            va_arg(valist, int);
+            char *s = va_arg(valist, char *);
+            int base = va_arg(valist, int);
+            print_from_base(f, p, base, s, 'A');
             prev += 3;
         }
         if (strncmp(prev, "%mi", 3) == 0) {
@@ -250,5 +286,8 @@ int main(void) {
                 0xff);
     overfprintf(stdout, "[%Ro] [%Ro] [%Ro]\n", 3549, -49, 191);
     overfprintf(stdout, "[%Zr] [%Zr] [%Zr]\n", 100, 100, 100);
-    overfprintf(stdout, "[%Cv] [%CV] [%CV] [%CV]\n", 0xffe1, 16, 8, 2, 1293, 36, -0xabcd12, 16);
+    overfprintf(stdout, "[%Cv] [%CV] [%CV] [%CV]\n", 0xffe1, 16, 8, 2, 1293, 36,
+                -0xabcd12, 16);
+    overfprintf(stdout, "[%to] [%TO] [%TO] [%TO]\n", "ffe1", 16, "-1000", 2, "ZZZZZZZZZ", 36,
+                "ZZ", 16);
 }
