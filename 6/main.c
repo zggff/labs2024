@@ -1,4 +1,3 @@
-#include <ctype.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -92,7 +91,46 @@ int sseek_wrapper(void **f) {
 }
 
 int scan_roman(void **f, scanner scan, seeker seek, int *n) {
-    return 0;
+    char c;
+    if (!scan(f, "%c", &c))
+        return 0;
+    bool neg = c == '-';
+    if (neg)
+        if (!scan(f, "%c", &c))
+            return 0;
+    if (c == '0') {
+        *n = 0;
+        return 1;
+    }
+
+    int ns[] = {1, 5, 10, 50, 100, 500, 1000};
+    char s[] = {'I', 'V', 'X', 'L', 'C', 'D', 'M'};
+
+    int cnt = sizeof(s) / sizeof(s[0]);
+    int num = 0;
+    int prev = 2000;
+    int i;
+    while (c) {
+        for (i = 0; i < cnt; i++)
+            if (c == s[i])
+                break;
+        if (c != s[i]) {
+            seek(f);
+            break;
+        }
+        if (prev < ns[i])
+            num -= 2 * prev;
+
+        num += ns[i];
+        prev = ns[i];
+
+        if (!scan(f, "%c", &c))
+            break;
+    }
+
+    num = neg ? -num : num;
+    *n = num;
+    return 1;
 }
 
 int scan_zeckendorf(void **f, scanner scan, seeker seek, unsigned int *n) {
@@ -192,7 +230,9 @@ int scanf_general(void **f, scanner scan, vscanner vscan, seeker seek,
             *str = 0;
 
         if (strncmp(prev, "%Ro", 3) == 0) {
-            va_arg(valist, int *);
+            int *n = va_arg(valist, int *);
+            if (!scan_roman(f, scan, seek, n))
+                break;
             prev += 3;
         }
         if (strncmp(prev, "%Zr", 3) == 0) {
@@ -285,5 +325,9 @@ int main(void) {
     s = "00101000011 : 123";
     r = oversscanf(s, "%Zr : %d", &a, &b);
     printf("%d\t%d %d\n", r, a, b);
+
+    s = "MMMDXLIX -XLIX CXCI : 0.4";
+    r = oversscanf(s, "%Ro %Ro %Ro : %f", &a, &b, &c, &f);
+    printf("%d\t%d %d %d %f\n", r, a, b, c, f);
     return 0;
 }
