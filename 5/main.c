@@ -6,34 +6,45 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef int (*printer)(void *f, const char *s, ...);
-typedef int (*vprinter)(void *f, const char *s, va_list valist);
+typedef int (*printer)(void **f, const char *s, ...);
+typedef int (*vprinter)(void **f, const char *s, va_list valist);
 
-int fprintf_wrapper(void *f, const char *s, ...) {
+int fprintf_wrapper(void **f, const char *s, ...) {
     va_list valist;
     va_start(valist, s);
-    int res = vfprintf(f, s, valist);
+    int res = vfprintf(*f, s, valist);
     va_end(valist);
     return res;
 }
 
-int sprintf_wrapper(void *f, const char *s, ...) {
+int sprintf_wrapper(void **f, const char *s, ...) {
     va_list valist;
     va_start(valist, s);
-    int res = vsprintf(f, s, valist);
+    int res = vsprintf(*f, s, valist);
+    if (res >= 0) {
+        char *c = *f;
+        c += res;
+        *f = c;
+    }
     va_end(valist);
     return res;
 }
 
-int vfprintf_wrapper(void *f, const char *s, va_list valist) {
-    return vfprintf(f, s, valist);
+int vfprintf_wrapper(void **f, const char *s, va_list valist) {
+    return vfprintf(*f, s, valist);
 }
 
-int vsprintf_wrapper(void *f, const char *s, va_list valist) {
-    return vsprintf(f, s, valist);
+int vsprintf_wrapper(void **f, const char *s, va_list valist) {
+    int res = vsprintf(*f, s, valist);
+    if (res >= 0) {
+        char *c = *f;
+        c += res;
+        *f = c;
+    }
+    return res;
 }
 
-int print_roman(void *f, printer p, int n) {
+int print_roman(void **f, printer p, int n) {
     if (n == 0)
         return p(f, "0");
 
@@ -55,7 +66,7 @@ int print_roman(void *f, printer p, int n) {
     return 0;
 }
 
-int print_zeckendorf(void *f, printer p, unsigned int n) {
+int print_zeckendorf(void **f, printer p, unsigned int n) {
     // 1 2 3 5 8 13 21 34 55 89
     // 0 0 1 0 1 0  0  0  0  1  1
     // 89 + 8 + 3
@@ -96,7 +107,7 @@ int print_zeckendorf(void *f, printer p, unsigned int n) {
     return 0;
 }
 
-int print_in_base(void *f, printer p, int base, int val, char start) {
+int print_in_base(void **f, printer p, int base, int val, char start) {
     if (val == 0)
         return p(f, "0");
 
@@ -139,7 +150,7 @@ int parse_digit(int *digit, int base, char c, char start) {
     return 1;
 }
 
-int print_from_base(void *f, printer p, int base, const char *s, char start) {
+int print_from_base(void **f, printer p, int base, const char *s, char start) {
     if (base < 2 || base > 36)
         base = 10;
     bool neg = *s == '-';
@@ -161,7 +172,18 @@ int print_from_base(void *f, printer p, int base, const char *s, char start) {
     return 0;
 }
 
-int printf_general(void *f, printer p, vprinter vp, const char *s,
+int print_bytes(void **f, printer p, const void *mem, int size) {
+    const unsigned char *c = mem;
+    for (int i = 0; i < size; i++) {
+        p(f, "%x", *c);
+        if (i < size - 1)
+            p(f, " ");
+        c++;
+    }
+    return 0;
+}
+
+int printf_general(void **f, printer p, vprinter vp, const char *s,
                    va_list valist) {
     int len = strlen(s) + 1;
     char *str = malloc(len);
@@ -210,19 +232,23 @@ int printf_general(void *f, printer p, vprinter vp, const char *s,
             prev += 3;
         }
         if (strncmp(prev, "%mi", 3) == 0) {
-            va_arg(valist, int32_t);
+            int32_t v = va_arg(valist, int32_t);
+            print_bytes(f, p, &v, sizeof(v));
             prev += 3;
         }
         if (strncmp(prev, "%mu", 3) == 0) {
-            va_arg(valist, uint32_t);
+            uint32_t v = va_arg(valist, uint32_t);
+            print_bytes(f, p, &v, sizeof(v));
             prev += 3;
         }
         if (strncmp(prev, "%md", 3) == 0) {
-            va_arg(valist, double);
+            double v = va_arg(valist, double);
+            print_bytes(f, p, &v, sizeof(v));
             prev += 3;
         }
         if (strncmp(prev, "%mf", 3) == 0) {
-            va_arg(valist, double);
+            float v = va_arg(valist, double);
+            print_bytes(f, p, &v, sizeof(v));
             prev += 3;
         }
 
@@ -268,15 +294,15 @@ int printf_general(void *f, printer p, vprinter vp, const char *s,
 int overfprintf(FILE *f, const char *s, ...) {
     va_list valist;
     va_start(valist, s);
-    int res = printf_general(f, fprintf_wrapper, vfprintf_wrapper, s, valist);
+    int res = printf_general((void *)&f, fprintf_wrapper, vfprintf_wrapper, s, valist);
     va_end(valist);
     return res;
 }
 
-int oversprintf(FILE *f, const char *s, ...) {
+int oversprintf(char *f, const char *s, ...) {
     va_list valist;
     va_start(valist, s);
-    int res = printf_general(f, fprintf_wrapper, vfprintf_wrapper, s, valist);
+    int res = printf_general((void *)&f, sprintf_wrapper, vsprintf_wrapper, s, valist);
     va_end(valist);
     return res;
 }
@@ -288,6 +314,10 @@ int main(void) {
     overfprintf(stdout, "[%Zr] [%Zr] [%Zr]\n", 100, 100, 100);
     overfprintf(stdout, "[%Cv] [%CV] [%CV] [%CV]\n", 0xffe1, 16, 8, 2, 1293, 36,
                 -0xabcd12, 16);
-    overfprintf(stdout, "[%to] [%TO] [%TO] [%TO]\n", "ffe1", 16, "-1000", 2, "ZZZZZZZZZ", 36,
-                "ZZ", 16);
+    overfprintf(stdout, "[%to] [%TO] [%TO] [%TO]\n", "ffe1", 16, "-1000", 2,
+                "ZZZZZZZZZ", 36, "ZZ", 16);
+    char buffer[128] = {0};
+    oversprintf(buffer, "[%mi] [%mi] [%mu] [%mf] [%md]\n", INT32_MAX, INT32_MIN,
+                0xffe1, 0.125, 0.125);
+    fprintf(stdout, "%s", buffer);
 }
