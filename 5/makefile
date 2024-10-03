@@ -1,5 +1,5 @@
 CC = clang
-CFLAGS = -std=gnu17 -pedantic -Wall -Wextra
+CFLAGS = -std=gnu17 -pedantic -Wall -Wextra -g
 TARGET = main.out
 
 .PHONY: clean run build
