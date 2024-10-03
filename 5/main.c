@@ -96,6 +96,37 @@ int print_zeckendorf(void *f, printer p, unsigned int n) {
     return 0;
 }
 
+int print_in_base(void *f, printer p, int base, int val, char start) {
+    if (val == 0)
+        return p(f, "0");
+
+    if (base < 2 || base > 36)
+        base = 10;
+
+    if (val < 0) {
+        p(f, "-");
+        val *= -1;
+    }
+
+    int i = 0;
+    char str[128];
+    while (val > 0) {
+        int remainder = val % base;
+        char c = remainder <= 9 ? '0' + remainder : start + remainder - 10;
+        str[i] = c;
+        val /= base;
+        i++;
+    }
+    for (int j = 0; j < i / 2; j++) {
+        char c = str[j];
+        str[j] = str[i - 1 - j];
+        str[i - 1 - j] = c;
+    }
+    str[i] = 0;
+    p(f, "%s", str);
+    return 0;
+}
+
 int printf_general(void *f, printer p, vprinter vp, const char *s,
                    va_list valist) {
     int len = strlen(s) + 1;
@@ -121,13 +152,15 @@ int printf_general(void *f, printer p, vprinter vp, const char *s,
             prev += 3;
         }
         if (strncmp(prev, "%Cv", 3) == 0) {
-            va_arg(valist, int);
-            va_arg(valist, int);
+            int n = va_arg(valist, int);
+            int base = va_arg(valist, int);
+            print_in_base(f, p, base, n, 'a');
             prev += 3;
         }
         if (strncmp(prev, "%CV", 3) == 0) {
-            va_arg(valist, int);
-            va_arg(valist, int);
+            int n = va_arg(valist, int);
+            int base = va_arg(valist, int);
+            print_in_base(f, p, base, n, 'A');
             prev += 3;
         }
         if (strncmp(prev, "%to", 3) == 0) {
@@ -217,5 +250,5 @@ int main(void) {
                 0xff);
     overfprintf(stdout, "[%Ro] [%Ro] [%Ro]\n", 3549, -49, 191);
     overfprintf(stdout, "[%Zr] [%Zr] [%Zr]\n", 100, 100, 100);
-
+    overfprintf(stdout, "[%Cv] [%CV] [%CV] [%CV]\n", 0xffe1, 16, 8, 2, 1293, 36, -0xabcd12, 16);
 }
