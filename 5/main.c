@@ -1,6 +1,7 @@
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -32,6 +33,69 @@ int vsprintf_wrapper(void *f, const char *s, va_list valist) {
     return vsprintf(f, s, valist);
 }
 
+int print_roman(void *f, printer p, int n) {
+    if (n == 0)
+        return p(f, "0");
+
+    if (n < 0) {
+        n *= -1;
+        p(f, "-");
+    }
+
+    int ns[] = {1, 4, 5, 9, 10, 40, 50, 90, 100, 400, 500, 900, 1000};
+    char *s[] = {"I",  "IV", "V",  "IX", "X",  "XL", "L",
+                 "XC", "C",  "CD", "D",  "CM", "M"};
+    for (int i = sizeof(s) / sizeof(s[0]) - 1; i >= 0; i--) {
+        int cnt = n / ns[i];
+        n = n % ns[i];
+        for (int j = 0; j < cnt; j++) {
+            p(f, "%s", s[i]);
+        }
+    }
+    return 0;
+}
+
+int print_zeckendorf(void *f, printer p, unsigned int n) {
+    // 1 2 3 5 8 13 21 34 55 89
+    // 0 0 1 0 1 0  0  0  0  1  1
+    // 89 + 8 + 3
+    int size = 16;
+    unsigned int *fib = malloc(size * sizeof(unsigned int));
+    if (!fib)
+        return 1;
+    fib[0] = 1;
+    fib[1] = 2;
+    int i = 2;
+    while (1) {
+        if (fib[i - 2] + fib[i - 1] > n)
+            break;
+        if (i >= size) {
+            size *= 2;
+            unsigned int *tmp = realloc(fib, size * sizeof(unsigned int));
+            if (!tmp) {
+                free(fib);
+                return 1;
+            }
+            fib = tmp;
+        }
+        fib[i] = fib[i - 2] + fib[i - 1];
+        i++;
+    }
+    for (int j = i - 1; j >= 0; j--) {
+        if (n >= fib[j]) {
+            n -= fib[j];
+            fib[j] = 1;
+        } else {
+            fib[j] = 0;
+        }
+    }
+    for (int j = 0; j < i; j++)
+        p(f, "%d", fib[j]);
+    p(f, "1");
+    free(fib);
+    return 0;
+}
+
 int printf_general(void *f, printer p, vprinter vp, const char *s,
                    va_list valist) {
     int len = strlen(s) + 1;
@@ -46,13 +110,14 @@ int printf_general(void *f, printer p, vprinter vp, const char *s,
         if (str)
             *str = 0;
 
-
         if (strncmp(prev, "%Ro", 3) == 0) {
-            va_arg(valist, int);
+            int n = va_arg(valist, int);
+            print_roman(f, p, n);
             prev += 3;
         }
         if (strncmp(prev, "%Zr", 3) == 0) {
-            va_arg(valist, unsigned int);
+            unsigned int n = va_arg(valist, unsigned int);
+            print_zeckendorf(f, p, n);
             prev += 3;
         }
         if (strncmp(prev, "%Cv", 3) == 0) {
@@ -127,8 +192,6 @@ int printf_general(void *f, printer p, vprinter vp, const char *s,
             str[0] = '%';
     }
 
-    (void) p;
-
     free(ptr);
     return 0;
 }
@@ -150,5 +213,9 @@ int oversprintf(FILE *f, const char *s, ...) {
 }
 
 int main(void) {
-    overfprintf(stdout, "hello, [%d] {%.*f} {%u} (%X)\n", 10, 2, 0.5, 125, 0xff);
+    overfprintf(stdout, "hello, [%d] {%.*f} {%u} (%X)\n", 10, 2, 0.5, 125,
+                0xff);
+    overfprintf(stdout, "[%Ro] [%Ro] [%Ro]\n", 3549, -49, 191);
+    overfprintf(stdout, "[%Zr] [%Zr] [%Zr]\n", 100, 100, 100);
+
 }
