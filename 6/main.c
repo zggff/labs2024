@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -40,17 +41,16 @@ int advance_string(void **f, const char *s) {
         j--;
     } while (n == 0 && j >= 2);
 
-    if (n >= 0) {
-        char *c = *f;
-        c += n;
-        *f = c;
-    }
+    char *c = *f;
+    c += n;
+    *f = c;
     free(s2);
     return 0;
 }
 
 typedef int (*scanner)(void **f, const char *s, ...);
 typedef int (*vscanner)(void **f, const char *s, va_list valist);
+typedef int (*seeker)(void **f);
 
 int fscanf_wrapper(void **f, const char *s, ...) {
     va_list valist;
@@ -79,8 +79,66 @@ int vsscanf_wrapper(void **f, const char *s, va_list valist) {
     return res;
 }
 
-int scanf_general(void **f, scanner scan, vscanner vscan, const char *s,
-                  va_list valist) {
+int fseek_wrapper(void **f) {
+    fseek(*f, -1, SEEK_CUR);
+    return 0;
+}
+
+int sseek_wrapper(void **f) {
+    char *c = *f;
+    c--;
+    *f = c;
+    return 0;
+}
+
+int scan_roman(void **f, scanner scan, seeker seek, int *n) {
+    return 0;
+}
+
+int scan_zeckendorf(void **f, scanner scan, seeker seek, unsigned int *n) {
+    return 0;
+}
+
+int parse_digit(int *digit, int base, char c, char start) {
+    if ('0' <= c && c <= '0' + base - 1) {
+        *digit = c - '0';
+        return 0;
+    }
+    if (start <= c && c <= start + base - 11) {
+        *digit = c - start + 10;
+        return 0;
+    }
+    return 1;
+}
+
+int scan_base(void **f, scanner scan, seeker seek, int *n, int base,
+              char start) {
+    if (base < 2 || base > 36)
+        base = 10;
+
+    char c;
+    scan(f, "%c", &c);
+    bool neg = c == '-';
+    if (neg)
+        scan(f, "%c", &c);
+
+    int digit = 0;
+    int num = 0;
+    while (c) {
+        if (parse_digit(&digit, base, c, start)) {
+            seek(f);
+            break;
+        }
+        num = num * base + digit;
+        scan(f, "%c", &c);
+    }
+    num = neg ? -num : num;
+    *n = num;
+    return 0;
+}
+
+int scanf_general(void **f, scanner scan, vscanner vscan, seeker seek,
+                  const char *s, va_list valist) {
     int len = strlen(s) + 1;
     char *str = malloc(len);
     if (!str)
@@ -107,13 +165,15 @@ int scanf_general(void **f, scanner scan, vscanner vscan, const char *s,
             prev += 3;
         }
         if (strncmp(prev, "%Cv", 3) == 0) {
-            va_arg(valist, int *);
-            va_arg(valist, int);
+            int *n = va_arg(valist, int *);
+            int base = va_arg(valist, int);
+            scan_base(f, scan, seek, n, base, 'a');
             prev += 3;
         }
         if (strncmp(prev, "%CV", 3) == 0) {
-            va_arg(valist, int *);
-            va_arg(valist, int);
+            int *n = va_arg(valist, int *);
+            int base = va_arg(valist, int);
+            scan_base(f, scan, seek, n, base, 'A');
             prev += 3;
         }
 
@@ -121,8 +181,10 @@ int scanf_general(void **f, scanner scan, vscanner vscan, const char *s,
         va_copy(copy, valist);
         int res = vscan(f, prev, copy);
         va_end(copy);
-        if (res != 1)
-            return cnt;
+
+        if (prev[0] == '%' && prev[1] != '%' && prev[1] != '*' && res < 1)
+            break;
+
         cnt++;
 
         if (prev[0] == '%') {
@@ -143,14 +205,14 @@ int scanf_general(void **f, scanner scan, vscanner vscan, const char *s,
     }
 
     free(ptr);
-    return 0;
+    return cnt;
 }
 
 int overfscanf(FILE *f, const char *s, ...) {
     va_list valist;
     va_start(valist, s);
-    int res =
-        scanf_general((void *)&f, fscanf_wrapper, vfscanf_wrapper, s, valist);
+    int res = scanf_general((void *)&f, fscanf_wrapper, vfscanf_wrapper,
+                            fseek_wrapper, s, valist);
     va_end(valist);
     return res;
 }
@@ -158,17 +220,27 @@ int overfscanf(FILE *f, const char *s, ...) {
 int oversscanf(char *f, const char *s, ...) {
     va_list valist;
     va_start(valist, s);
-    int res =
-        scanf_general((void *)&f, sscanf_wrapper, vsscanf_wrapper, s, valist);
+    int res = scanf_general((void *)&f, sscanf_wrapper, vsscanf_wrapper,
+                            sseek_wrapper, s, valist);
     va_end(valist);
     return res;
 }
 
 int main(void) {
-    char s[] = "13, 24";
-    int a, b;
-    float f;
-    oversscanf(s, "%d, %d : %f", &a, &b, &f);
-    printf("%d %d %f\n", a, b, f);
+    char *s = "13, 24";
+    int a, b, c;
+    float f = 0;
+    int r = 0;
+    // oversscanf(s, "%d, %d : %f", &a, &b, &f);
+    // printf("%d %d %f\n", a, b, f);
+
+    a = 0;
+    b = 0;
+    c = 0;
+    f = 0;
+    s = "ffe1, 100, -ZZ : 0.1";
+    // oversscanf(s, "%Cv", &a, 16, &b, 2, &c, 36, &f);
+    r = oversscanf(s, "%Cv, %Cv, %CV : %f", &a, 16, &b, 2, &c, 36, &f);
+    printf("%d\t%d %d %d %f\n", r, a, b, c, f);
     return 0;
 }
