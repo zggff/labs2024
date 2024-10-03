@@ -4,10 +4,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-#define PRODUCT(A, B) ((A) * (B))
-#define SUM(A, B) ((A) + (B))
-#define JUST_A_FUNCTION(A, B, MACRO) MACRO(A, B)
-
 #define check_and_return(MACRO)                                                \
     {                                                                          \
         int r = MACRO;                                                         \
