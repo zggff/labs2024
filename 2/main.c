@@ -3,12 +3,9 @@
 
 #include <stdarg.h>
 
-#define EPSILON 0.0000000001
-
 typedef enum RES {
     RES_OK = 0,
-    RES_NEGATIVE = 1,
-    RES_INCORRECT = 2,
+    RES_INCORRECT = 1,
 } RES;
 
 RES calc_average(double *res, int num, ...) {
@@ -19,10 +16,6 @@ RES calc_average(double *res, int num, ...) {
     for (; i < num; i++) {
         double arg = va_arg(valist, double);
         if (arg < 0) {
-            va_end(valist);
-            return RES_NEGATIVE;
-        }
-        if (fabs(arg - 0) < EPSILON) {
             va_end(valist);
             return RES_INCORRECT;
         }
