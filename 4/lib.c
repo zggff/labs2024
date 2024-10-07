@@ -71,3 +71,46 @@ int string_concatenate(String *a, const String *b) {
     a->len = a->len + b->len;
     return S_OK;
 }
+
+int post_init(Post *p) {
+    p->current = NULL;
+    p->capacity = 16;
+    p->size = 0;
+    p->mail = malloc(p->capacity * sizeof(Mail));
+    if (p->mail == NULL)
+        return S_MALLOC;
+    return S_OK;
+}
+
+int post_print(const Post *p) {
+    for (size_t i = 0; i < p->size; i++) {
+        mail_print(&p->mail[i]);
+    }
+    return S_OK;
+}
+int post_add(Post *p, Mail m) {
+    if (p->size >= p->capacity) {
+        size_t new_capacity = p->capacity * 2;
+        Mail *tmp = realloc(p->mail, new_capacity);
+        if (!tmp)
+            return S_MALLOC;
+        p->mail = tmp;
+        p->capacity = new_capacity;
+    }
+    p->mail[p->size] = m;
+    p->size++;
+    return S_OK;
+}
+int post_remove(Post *p, size_t i) {
+    if (i >= p->size)
+        return S_OUT_OF_BOUNDS;
+    for (size_t j = i; j < p->size - 1; j++) {
+        p->mail[j] = p->mail[j + 1];
+    }
+    return S_OK;
+}
+
+int post_sort(Post *p) {
+    qsort(p->mail, p->size, sizeof(Mail), mail_cmp);
+    return S_OK;
+}
