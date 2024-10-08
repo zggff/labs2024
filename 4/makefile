@@ -1,10 +1,9 @@
 CC = clang
 CFLAGS = -std=gnu17 -Wall -Wextra -g
-TARGET = main.out
 
 .PHONY: clean run build
 
-build: ${TARGET}
+build: main.out
 
 string.out: string.o lib.o
 	${CC} ${CFLAGS} -o $@ $^
@@ -23,4 +22,4 @@ lib.o: lib.c lib.h
 
 clean:
 	@rm -f ./*.o
-	@rm -f ${TARGET}
+	@rm -f ./*.out
