@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "lib.h"
 
@@ -40,9 +41,22 @@ int string_compare(int *res, const String *a, const String *b) {
     return S_OK;
 }
 
+int string_compare_str(int *res, const String *a, const char *b) {
+    String bs = {0};
+    string_from_str(&bs, b);
+    return string_compare(res, a, &bs);
+}
+
 int string_equal(bool *res, const String *a, const String *b) {
     int cmp;
     string_compare(&cmp, a, b);
+    *res = cmp == 0;
+    return S_OK;
+}
+
+int string_equal_str(bool *res, const String *a, const char *b) {
+    int cmp;
+    string_compare_str(&cmp, a, b);
     *res = cmp == 0;
     return S_OK;
 }
@@ -72,6 +86,170 @@ int string_concatenate(String *a, const String *b) {
     return S_OK;
 }
 
+int parse_field_str(String *res, char **start, const char *sep) {
+    char *end = strchr(*start, sep[0]);
+    if (!end) {
+        end = *start + strlen(*start);
+    }
+    char tmp = *end;
+    *end = 0;
+    int r = string_from_str(res, *start);
+    *end = tmp;
+    *start = end + 1;
+    return r;
+}
+
+int parse_field_uint(unsigned *res, char **start, const char *sep) {
+    char *ptr;
+    *res = strtoul(*start, &ptr, 10);
+    bool valid = *ptr == 0;
+    for (; !valid && *sep; sep++) {
+        if (*sep == *ptr) {
+            valid = true;
+        }
+    }
+    if (!valid) {
+        ptr++;
+        char tmp = *ptr;
+        *ptr = 0;
+        fprintf(stderr, "ERROR: failed to parse [%s] as unsigned\n", *start);
+        *ptr = tmp;
+        return S_PARSE_ERROR;
+    }
+
+    *start = ptr + 1;
+    return S_OK;
+}
+
+int parse_field_float(float *res, char **start, const char *sep) {
+    char *ptr;
+    *res = strtof(*start, &ptr);
+    bool valid = *ptr == 0;
+    for (; !valid && *sep; sep++) {
+        if (*sep == *ptr) {
+            valid = true;
+        }
+    }
+    if (!valid) {
+        ptr++;
+        char tmp = *ptr;
+        *ptr = 0;
+        fprintf(stderr, "ERROR: failed to parse [%s] as float\n", *start);
+        *ptr = tmp;
+        return S_PARSE_ERROR;
+    }
+    *start = ptr + 1;
+    return S_OK;
+}
+
+int address_from_string(Adress *a, char **s) {
+    memset(a, 0, sizeof(Adress));
+    check(parse_field_str(&a->city, s, ";"));
+    check(parse_field_str(&a->street, s, ";"));
+    check(parse_field_uint(&a->building, s, ";"));
+    check(parse_field_str(&a->block, s, ";"));
+    check(parse_field_uint(&a->flat, s, ";"));
+    check(parse_field_str(&a->id, s, ";"));
+    if (a->city.len == 0) {
+        fprintf(stderr, "ERROR: city must not be empty\n");
+        return S_PARSE_ERROR;
+    }
+    if (a->street.len == 0) {
+        fprintf(stderr, "ERROR: street must not be empty\n");
+        return S_PARSE_ERROR;
+    }
+    if (a->building == 0) {
+        fprintf(stderr, "ERROR: building number must be positive\n");
+        return S_PARSE_ERROR;
+    }
+    if (a->flat == 0) {
+        fprintf(stderr, "ERROR: flat number must be positive\n");
+        return S_PARSE_ERROR;
+    }
+    if (a->id.len != 6) {
+        fprintf(stderr, "ERROR: mail index must be 6 symbols, got [%d] [%s]\n",
+                a->id.len, a->id.ptr);
+        return S_PARSE_ERROR;
+    }
+    return S_OK;
+}
+
+int mail_from_string(Mail *m, char **s) {
+    memset(m, 0, sizeof(Mail));
+    check(address_from_string(&m->addr, s));
+    check(parse_field_float(&m->weight, s, ";"));
+    check(parse_field_str(&m->id, s, ";"));
+    check(parse_field_str(&m->create, s, ";"));
+    check(parse_field_str(&m->receive, s, ";"));
+    int read = 0;
+    time_t t;
+    sscanf(m->create.ptr, "%*2d:%*2d:%*4d %*2d:%*2d:%n%*2d", &read);
+    if (read != 17 || parse_time(&t, &m->create) != S_OK) {
+        fprintf(stderr, "ERROR: failed to parse [%s] as date\n", m->create.ptr);
+        return S_PARSE_ERROR;
+    }
+    sscanf(m->receive.ptr, "%*2d:%*2d:%*4d %*2d:%*2d:%n%*2d", &read);
+    if (read != 17 || parse_time(&t, &m->receive) != S_OK) {
+        fprintf(stderr, "ERROR: failed to parse [%s] as date\n",
+                m->receive.ptr);
+        return S_PARSE_ERROR;
+    }
+    if (m->weight < 0) {
+        fprintf(stderr, "ERROR: weight must be >= 0\n");
+    }
+    if (m->id.len != 14) {
+        fprintf(stderr, "ERROR: index must be 14 symbols, got [%d] [%s]\n",
+                m->id.len, m->id.ptr);
+        return S_PARSE_ERROR;
+    }
+
+    return S_OK;
+}
+
+int mail_print(const Mail *m) {
+    printf("[%s %s %u %s %u %s] ", m->addr.city.ptr, m->addr.street.ptr,
+           m->addr.building, m->addr.block.ptr, m->addr.flat, m->addr.id.ptr);
+    printf("w=%f id=%s t_create=%s t_receive=%s\n", m->weight, m->id.ptr,
+           m->create.ptr, m->receive.ptr);
+
+    return S_OK;
+}
+
+int mail_cmp_id(const void *a0, const void *b0) {
+    const Mail *a = a0;
+    const Mail *b = b0;
+    int res;
+    string_compare(&res, &a->addr.id, &b->addr.id);
+    if (res != 0)
+        return res;
+    string_compare(&res, &a->id, &b->id);
+    return res;
+}
+
+int mail_cmp_date(const void *a0, const void *b0) {
+    const Mail *a = a0;
+    const Mail *b = b0;
+    time_t ta;
+    time_t tb;
+    parse_time(&ta, &a->receive);
+    parse_time(&tb, &b->receive);
+    int diff = difftime(ta, tb);
+    if (diff == 0)
+        return 0;
+    if (diff < 0)
+        return -1;
+    return 1;
+}
+
+int parse_time(time_t *t, const String *a) {
+    struct tm t0 = {0};
+    char *last = strptime(a->ptr, "%d:%m:%Y %H:%M:%S", &t0);
+    *t = mktime(&t0);
+    if (*last)
+        return S_PARSE_ERROR;
+    return S_OK;
+}
+
 int post_init(Post *p) {
     p->current = NULL;
     p->capacity = 16;
@@ -84,8 +262,10 @@ int post_init(Post *p) {
 
 int post_print(const Post *p) {
     for (size_t i = 0; i < p->size; i++) {
+        printf("[%zu]:\t", i);
         mail_print(&p->mail[i]);
     }
+    printf("\n");
     return S_OK;
 }
 int post_add(Post *p, Mail m) {
@@ -107,10 +287,30 @@ int post_remove(Post *p, size_t i) {
     for (size_t j = i; j < p->size - 1; j++) {
         p->mail[j] = p->mail[j + 1];
     }
+    p->size--;
     return S_OK;
 }
 
 int post_sort(Post *p) {
-    qsort(p->mail, p->size, sizeof(Mail), mail_cmp);
+    qsort(p->mail, p->size, sizeof(Mail), mail_cmp_id);
+    return S_OK;
+}
+
+int post_filter_by_delivery_status(Post *p, const Post *p0, bool delivered) {
+    time_t now = time(NULL);
+    time_t t;
+    for (size_t i = 0; i < p0->size; i++) {
+        Mail m = p0->mail[i];
+        parse_time(&t, &m.receive);
+        if ((difftime(t, now) <= 0) ^ !delivered) {
+            post_add(p, m);
+        }
+    }
+    qsort(p->mail, p->size, sizeof(Mail), mail_cmp_date);
+    return S_OK;
+}
+
+int post_free(Post *p) {
+    (void)p;
     return S_OK;
 }
