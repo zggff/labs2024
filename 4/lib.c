@@ -44,7 +44,7 @@ int string_compare(int *res, const String *a, const String *b) {
 int string_compare_str(int *res, const String *a, const char *b) {
     String bs = {0};
     string_from_str(&bs, b);
-    int r =  string_compare(res, a, &bs);
+    int r = string_compare(res, a, &bs);
     string_free(&bs);
     return r;
 }
@@ -144,33 +144,54 @@ int parse_field_float(float *res, char **start, const char *sep) {
     return S_OK;
 }
 
+int address_free(Adress *a) {
+    string_free(&a->id);
+    string_free(&a->city);
+    string_free(&a->street);
+    string_free(&a->block);
+    return S_OK;
+}
+
+int mail_free(Mail *m) {
+    string_free(&m->receive);
+    string_free(&m->create);
+    string_free(&m->id);
+    address_free(&m->addr);
+    return S_OK;
+}
+
 int address_from_string(Adress *a, char **s) {
     memset(a, 0, sizeof(Adress));
-    check(parse_field_str(&a->city, s, ";"));
-    check(parse_field_str(&a->street, s, ";"));
-    check(parse_field_uint(&a->building, s, ";"));
-    check(parse_field_str(&a->block, s, ";"));
-    check(parse_field_uint(&a->flat, s, ";"));
-    check(parse_field_str(&a->id, s, ";"));
+    check(parse_field_str(&a->city, s, ";"), address_free(a));
+    check(parse_field_str(&a->street, s, ";"), address_free(a));
+    check(parse_field_uint(&a->building, s, ";"), address_free(a));
+    check(parse_field_str(&a->block, s, ";"), address_free(a));
+    check(parse_field_uint(&a->flat, s, ";"), address_free(a));
+    check(parse_field_str(&a->id, s, ";"), address_free(a));
     if (a->city.len == 0) {
         fprintf(stderr, "ERROR: city must not be empty\n");
+        address_free(a);
         return S_PARSE_ERROR;
     }
     if (a->street.len == 0) {
         fprintf(stderr, "ERROR: street must not be empty\n");
+        address_free(a);
         return S_PARSE_ERROR;
     }
     if (a->building == 0) {
         fprintf(stderr, "ERROR: building number must be positive\n");
+        address_free(a);
         return S_PARSE_ERROR;
     }
     if (a->flat == 0) {
         fprintf(stderr, "ERROR: flat number must be positive\n");
+        address_free(a);
         return S_PARSE_ERROR;
     }
     if (a->id.len != 6) {
         fprintf(stderr, "ERROR: mail index must be 6 symbols, got [%d] [%s]\n",
                 a->id.len, a->id.ptr);
+        address_free(a);
         return S_PARSE_ERROR;
     }
     return S_OK;
@@ -178,28 +199,33 @@ int address_from_string(Adress *a, char **s) {
 
 int mail_from_string(Mail *m, char **s) {
     memset(m, 0, sizeof(Mail));
-    check(address_from_string(&m->addr, s));
-    check(parse_field_float(&m->weight, s, ";"));
-    check(parse_field_str(&m->id, s, ";"));
-    check(parse_field_str(&m->create, s, ";"));
-    check(parse_field_str(&m->receive, s, ";"));
+    check(address_from_string(&m->addr, s), mail_free(m));
+    check(parse_field_float(&m->weight, s, ";"), mail_free(m));
+    check(parse_field_str(&m->id, s, ";"), mail_free(m));
+    check(parse_field_str(&m->create, s, ";"), mail_free(m));
+    check(parse_field_str(&m->receive, s, ";"), mail_free(m));
     int read = 0;
     time_t t;
-    sscanf(m->create.ptr, "%*2d:%*2d:%*4d %*2d:%*2d:%n%*2d", &read);
-    if (read != 17 || parse_time(&t, &m->create) != S_OK) {
+    sscanf(m->create.ptr, "%*2d:%*2d:%*4d %*2d:%*2d:%*2d%n", &read);
+    if (read != 19 || parse_time(&t, &m->create) != S_OK) {
         fprintf(stderr, "ERROR: failed to parse [%s] as date\n", m->create.ptr);
+        mail_free(m);
         return S_PARSE_ERROR;
     }
-    sscanf(m->receive.ptr, "%*2d:%*2d:%*4d %*2d:%*2d:%n%*2d", &read);
-    if (read != 17 || parse_time(&t, &m->receive) != S_OK) {
+    sscanf(m->receive.ptr, "%*2d:%*2d:%*4d %*2d:%*2d:%*2d%n", &read);
+    if (read != 19 || parse_time(&t, &m->receive) != S_OK) {
         fprintf(stderr, "ERROR: failed to parse [%s] as date\n",
                 m->receive.ptr);
+        mail_free(m);
         return S_PARSE_ERROR;
     }
     if (m->weight < 0) {
+        mail_free(m);
         fprintf(stderr, "ERROR: weight must be >= 0\n");
+        return S_PARSE_ERROR;
     }
     if (m->id.len != 14) {
+        mail_free(m);
         fprintf(stderr, "ERROR: index must be 14 symbols, got [%d] [%s]\n",
                 m->id.len, m->id.ptr);
         return S_PARSE_ERROR;
@@ -243,28 +269,12 @@ int mail_cmp_date(const void *a0, const void *b0) {
     return 1;
 }
 
-int address_free(Adress *a) {
-    string_free(&a->id);
-    string_free(&a->city);
-    string_free(&a->street);
-    string_free(&a->block);
-    return S_OK;
-}
-
-int mail_free(Mail *m) {
-    string_free(&m->receive);
-    string_free(&m->create);
-    string_free(&m->id);
-    address_free(&m->addr);
-    return S_OK;
-}
-
 int parse_time(time_t *t, const String *a) {
     struct tm t0 = {0};
     char *last = strptime(a->ptr, "%d:%m:%Y %H:%M:%S", &t0);
-    *t = mktime(&t0);
-    if (*last)
+    if (last == NULL || *last != 0)
         return S_PARSE_ERROR;
+    *t = mktime(&t0);
     return S_OK;
 }
 
@@ -302,11 +312,11 @@ int post_add(Post *p, Mail m) {
 int post_remove(Post *p, size_t i) {
     if (i >= p->size)
         return S_OUT_OF_BOUNDS;
+    mail_free(&p->mail[i]);
     for (size_t j = i; j < p->size - 1; j++) {
         p->mail[j] = p->mail[j + 1];
     }
     p->size--;
-    mail_free(&p->mail[p->size]);
     return S_OK;
 }
 

@@ -5,10 +5,11 @@
 #include <stdbool.h>
 #include <time.h>
 
-#define check(MACRO)                                                           \
+#define check(MACRO, AFTER)                                                    \
     {                                                                          \
         int r = MACRO;                                                         \
         if (r) {                                                               \
+            AFTER;                                                             \
             return r;                                                          \
         }                                                                      \
     }

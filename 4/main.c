@@ -48,8 +48,8 @@ int handle_print(Post *p, char *s) {
 
 int handle_delivered_status(Post *p, bool delivered) {
     Post deliv = {0};
-    check(post_init(&deliv));
-    check(post_filter_by_delivery_status(&deliv, p, delivered));
+    check(post_init(&deliv), {});
+    check(post_filter_by_delivery_status(&deliv, p, delivered), {});
     post_print(&deliv);
     free(deliv.mail);
     // post_free(&deliv);
