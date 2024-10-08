@@ -51,7 +51,8 @@ int handle_delivered_status(Post *p, bool delivered) {
     check(post_init(&deliv));
     check(post_filter_by_delivery_status(&deliv, p, delivered));
     post_print(&deliv);
-    post_free(&deliv);
+    free(deliv.mail);
+    // post_free(&deliv);
     return S_OK;
 }
 
@@ -87,6 +88,7 @@ int handle_id(Post *p, char *s) {
             printf("mail was not delivered\n");
         break;
     }
+    string_free(&id);
     if (!eq) {
         printf("mail not found\n");
     }
@@ -107,10 +109,12 @@ int main(void) {
     handle handles[] = {handle_add,         handle_remove, handle_sort,
                         handle_print,       handle_id,     handle_delivered,
                         handle_notdelivered};
+    FILE *f = fopen("input.txt", "r");
     while (true) {
         String op = {0};
-        int n = getline(&line, &line_len, stdin);
-        if (n <= 1)
+        int n = getline(&line, &line_len, f);
+        // printf("[%s] [%d]\n", line, n);
+        if (n <= 0)
             break;
         n--;
         line[n] = 0;
@@ -127,9 +131,11 @@ int main(void) {
         }
         if (!res)
             fprintf(stderr, "ERROR: unknown command: [%s]\n", op.ptr);
+        string_free(&op);
     }
     if (line)
         free(line);
     post_free(&p);
+    fclose(f);
     return 0;
 }

@@ -44,7 +44,9 @@ int string_compare(int *res, const String *a, const String *b) {
 int string_compare_str(int *res, const String *a, const char *b) {
     String bs = {0};
     string_from_str(&bs, b);
-    return string_compare(res, a, &bs);
+    int r =  string_compare(res, a, &bs);
+    string_free(&bs);
+    return r;
 }
 
 int string_equal(bool *res, const String *a, const String *b) {
@@ -241,6 +243,22 @@ int mail_cmp_date(const void *a0, const void *b0) {
     return 1;
 }
 
+int address_free(Adress *a) {
+    string_free(&a->id);
+    string_free(&a->city);
+    string_free(&a->street);
+    string_free(&a->block);
+    return S_OK;
+}
+
+int mail_free(Mail *m) {
+    string_free(&m->receive);
+    string_free(&m->create);
+    string_free(&m->id);
+    address_free(&m->addr);
+    return S_OK;
+}
+
 int parse_time(time_t *t, const String *a) {
     struct tm t0 = {0};
     char *last = strptime(a->ptr, "%d:%m:%Y %H:%M:%S", &t0);
@@ -288,6 +306,7 @@ int post_remove(Post *p, size_t i) {
         p->mail[j] = p->mail[j + 1];
     }
     p->size--;
+    mail_free(&p->mail[p->size]);
     return S_OK;
 }
 
@@ -311,6 +330,9 @@ int post_filter_by_delivery_status(Post *p, const Post *p0, bool delivered) {
 }
 
 int post_free(Post *p) {
-    (void)p;
+    for (size_t i = 0; i < p->size; i++) {
+        mail_free(&p->mail[i]);
+    }
+    free(p->mail);
     return S_OK;
 }
