@@ -1,0 +1,13 @@
+Print
+FindId 2
+FindFn Jane
+SortFn
+Print
+SortLn
+Print
+SortId
+Print
+DumpId 2
+DumpAvg
+FindGr fw2
+FindGr fww
