@@ -109,11 +109,9 @@ int main(void) {
     handle handles[] = {handle_add,         handle_remove, handle_sort,
                         handle_print,       handle_id,     handle_delivered,
                         handle_notdelivered};
-    FILE *f = fopen("input.txt", "r");
     while (true) {
         String op = {0};
-        int n = getline(&line, &line_len, f);
-        // printf("[%s] [%d]\n", line, n);
+        int n = getline(&line, &line_len, stdin);
         if (n <= 0)
             break;
         n--;
@@ -136,6 +134,5 @@ int main(void) {
     if (line)
         free(line);
     post_free(&p);
-    fclose(f);
     return 0;
 }
