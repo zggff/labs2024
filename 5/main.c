@@ -181,7 +181,7 @@ int main(int argc, const char *argw[]) {
 
     while (true) {
         int n = getline(&line, &line_len, stdin);
-        if (n <= 1)
+        if (n <= 0)
             break;
         n--;
         line[n] = 0;
