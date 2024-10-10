@@ -52,14 +52,17 @@ int check_fraction(bool *fin, int base, double x, double e) {
             break;
             int new_cap = cap * 2;
             double *t = realloc(rem, new_cap * sizeof(double));
-            if (!t)
+            if (!t) {
+                free(rem);
                 return S_MALLOC_ERROR;
+            }
             rem = t;
             cap = new_cap;
         }
         rem[i] = x;
         i++;
     }
+    free(rem);
     return S_OK;
 }
 

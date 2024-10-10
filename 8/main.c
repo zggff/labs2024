@@ -110,7 +110,7 @@ int sum(char **res, int base, int n, ...) {
     va_start(valist, n);
     for (int i = 0; i < n; i++) {
         char *b = va_arg(valist, char *);
-        check(add(&c, base, a, b), va_end(valist));
+        check(add(&c, base, a, b), {va_end(valist); free(a);});
         free(a);
         a = c;
     }
