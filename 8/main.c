@@ -22,7 +22,7 @@ typedef enum Status {
 
 int char_to_int(int *res, int base, char c) {
     int limit_0 = base < 10 ? base : 10;
-    if (0 <= c && c < '0' + limit_0) 
+    if (0 <= c && c < '0' + limit_0)
         *res = c - '0';
     else if ('A' <= c && c < 'A' + base - 10)
         *res = c - 'A' + 10;
@@ -122,17 +122,46 @@ int sum(char **res, int base, int n, ...) {
 
 int main(void) {
     char *res;
-    sum(&res, 10, 6, "999999", "1", "4", "9", "128", "9");
-    printf("%s\n", res);
-    free(res);
+    int r;
+    r = sum(&res, 10, 6, "999999", "1", "4", "9", "128", "9");
+    if (!r) {
+        printf("%s\n", res);
+        free(res);
+    } else {
+        printf("ERROR: %d\n", r);
+    }
 
     // 100011111011001
-    sum(&res, 2, 5, "10110", "111001", "100011101110111", "11", "10000");
-    printf("%s\n", res);
-    free(res);
+    r = sum(&res, 2, 5, "10110", "111001", "100011101110111", "11", "10000");
+    if (!r) {
+        printf("%s\n", res);
+        free(res);
+    } else {
+        printf("ERROR: %d\n", r);
+    }
 
     // 33 + 33 + 38 + 35 + 10 + 1297 = 1448 = 146_36
-    sum(&res, 36, 6, "X", "X", "12", "Z", "A", "101");
-    printf("%s\n", res);
-    free(res);
+    r = sum(&res, 36, 6, "X", "X", "12", "Z", "A", "101");
+    if (!r) {
+        printf("%s\n", res);
+        free(res);
+    } else {
+        printf("ERROR: %d\n", r);
+    }
+
+    r = sum(&res, 34, 6, "X", "X", "12", "Z", "A", "101");
+    if (!r) {
+        printf("%s\n", res);
+        free(res);
+    } else {
+        printf("ERROR: %d\n", r);
+    }
+
+    r = sum(&res, 40, 6, "X", "X", "12", "Z", "A", "101");
+    if (!r) {
+        printf("%s\n", res);
+        free(res);
+    } else {
+        printf("ERROR: %d\n", r);
+    }
 }
