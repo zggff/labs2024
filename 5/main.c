@@ -139,7 +139,8 @@ int print_in_base(void **f, printer p, int base, int val, char start) {
 }
 
 int parse_digit(int *digit, int base, char c, char start) {
-    if ('0' <= c && c <= '0' + base - 1) {
+    int limit_0 = base < 10 ? base : 10;
+    if ('0' <= c && c <= '0' + limit_0 - 1) {
         *digit = c - '0';
         return 0;
     }
