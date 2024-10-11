@@ -72,7 +72,7 @@ int solve_with_notes(double x0, double x1, double epsilon, calc op,
     case S_INVALID_INPUT:
         fprintf(
             stderr,
-            "ERROR: invalid input: epsilon <= 0 or result pointer is null\n");
+            "ERROR: invalid input: epsilon <= 0 \n");
         break;
     case S_NOT_IN_RANGE:
         fprintf(stderr, "ERROR: right side value is not in range of function "
@@ -86,6 +86,8 @@ int solve_with_notes(double x0, double x1, double epsilon, calc op,
 }
 
 int main(void) {
+    solve_with_notes(2, 4, -0.0001, sinx, 0);
+    solve_with_notes(2, 4, 0.0001, sinx, 2);
     solve_with_notes(2, 4, 0.0001, sinx, 0);
     solve_with_notes(0, 2, 0.0001, sqrx, 2);
 }
