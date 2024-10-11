@@ -1,0 +1,43 @@
+print
+update 2 first_name Sasha
+print
+update 2 patronymic Alexseevna
+print
+undo
+print
+undo
+print
+write out.txt
+update 2 first_name ;
+update 2 last_name ;
+update 2 patronymic ;
+push Petrova Vasilisa  10.01.2003 W 120
+print
+remove 0
+print
+remove 1
+print
+push Ivanov Vladimir  10.05.2005 M 1012
+print
+undo
+print
+undo
+print
+undo
+print
+undo
+print
+undo
+push ; B C 10.05.2005 M 1012
+push A B C 10.05.2005 M -1012
+push A B C 10.05.2005 m 1012
+find first_name Ivan
+find last_name Ivanov
+find patronymic Ivanovich
+find gender M 
+find gender W 
+find income 142
+find income 143
+find date_of_birth 10.01.2004
+find date_of_birth 10.11.2004
+remove 12
