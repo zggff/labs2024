@@ -1,7 +1,7 @@
 #include "lib.h"
 
 int main(int argc, const char *argw[]) {
-    if (argc < 1) {
+    if (argc < 2) {
         fprintf(stderr, "ERROR: no input file provided\n");
         return 1;
     }
@@ -10,6 +10,12 @@ int main(int argc, const char *argw[]) {
         fprintf(stderr, "ERROR: failed to open file: [%s]\n", argw[1]);
         return 1;
     }
+
+    Db d = {0};
+    db_init(&d);
+    db_read_file(&d, f);
+    db_print(&d);
+    db_free(&d);
 
     fclose(f);
     return 0;

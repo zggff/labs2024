@@ -25,7 +25,7 @@ typedef struct tm tm;
 typedef struct Liver {
     char *last_name;
     char *first_name;
-    char *middle_name;
+    char *patronymic;
     tm date_of_birth;
     char gender;
     float income;
@@ -34,7 +34,9 @@ typedef struct Liver {
 int liver_from_str(Liver *l, const char *s);
 int liver_free(Liver *l);
 int liver_print(const Liver *l);
-int liver_dump_to_file(const Liver *l, FILE *f);
+int liver_write(const Liver *l, FILE *f);
+
+typedef int (*mask)(int);
 
 typedef struct Db {
     size_t size;
@@ -43,9 +45,17 @@ typedef struct Db {
 } Db;
 
 int db_init(Db *d);
+int db_push(Db *d, Liver);
 int db_read_file(Db *d, FILE *f);
 int db_free(Db *d);
-int db_write_file(const Db *d, FILE *f);
+int db_write(const Db *d, FILE *f);
 int db_print(const Db *d);
+
+int parse_field_str(char **res, char const **start, mask m);
+int parse_field_uint(unsigned long *res, char const **start, mask m);
+int parse_field_float(float *res, char const **start, mask m);
+int parse_field_time(tm *res, const char **start, mask m);
+int parse_field_char(char *res, const char **start, mask m);
+
 
 #endif
