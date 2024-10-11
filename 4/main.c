@@ -95,11 +95,11 @@ Status polynomial(double *res, double x, int n, ...) {
 
 Status parse_digit(int *res, int base, char c) {
     c = tolower(c);
-    if ('0' <= c && c <= '0' + base - 1) {
+    if ('0' <= c && c <= '0' + base - 1 && c <= '9') {
         *res = c - '0';
         return S_OK;
     }
-    if ('a' <= c && c <= 'a' + base - 11) {
+    if ('a' <= c && c <= 'a' + base - 11 && c <= 'z') {
         *res = c - 'a' + 10;
         return S_OK;
     }
@@ -213,7 +213,7 @@ int main(void) {
 #if MODE == 2
 int main(void) {
     double res = 0;
-    polynomial(&res, 1, 2, 1.0, 0.0, 0.0);
+    polynomial(&res, 0.5, 5, 12.1, -8.2, 12.4, -0.2, 0.5, 2.4);
     printf("%f\n", res);
     return S_OK;
 }
