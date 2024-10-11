@@ -176,7 +176,7 @@ int liver_copy(Liver *t, const Liver *l) {
     t->patronymic = malloc(n);
     if (t == NULL)
         return S_MALLOC_ERROR;
-    memcpy(t->patronymic, l->first_name, n);
+    memcpy(t->patronymic, l->patronymic, n);
 
     t->date_of_birth = l->date_of_birth;
     t->gender = l->gender;
