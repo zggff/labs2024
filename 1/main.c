@@ -134,14 +134,18 @@ Status handle_n(const char *str, int rest_c, const char *rest[]) {
 }
 
 Status handle_c(const char *str, int rest_c, const char *rest[]) {
+    if (rest_c < 1) {
+        fprintf(stderr, "ERROR: no seed provided\n");
+        return STATUS_INVALID_INPUT;
+    }
     unsigned int seed;
-    int status = parse_uint(&seed, str);
+    int status = parse_uint(&seed, rest[0]);
     if (status == STATUS_OVERFLOW) {
         fprintf(stderr, "ERROR: seed is too big\n");
         return status;
     }
     if (status == STATUS_INVALID_INPUT) {
-        fprintf(stderr, "ERROR: failed to parse \"%s\" as unsigned int\n", str);
+        fprintf(stderr, "ERROR: failed to parse \"%s\" as unsigned int\n", rest[0]);
         return status;
     }
     srand(seed);
@@ -149,6 +153,7 @@ Status handle_c(const char *str, int rest_c, const char *rest[]) {
         printf("No strings to concatinate\n");
         return STATUS_OK;
     }
+    rest[0] = str;
 
     int total_len = 0;
     int len;
