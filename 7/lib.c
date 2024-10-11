@@ -158,9 +158,35 @@ int liver_print(const Liver *l) {
     return liver_write(l, stdout);
 }
 
+int liver_copy(Liver *t, const Liver *l) {
+    int n;
+    n = strlen(l->first_name) + 1;
+    t->first_name = malloc(n);
+    if (t == NULL)
+        return S_MALLOC_ERROR;
+    memcpy(t->first_name, l->first_name, n);
+
+    n = strlen(l->last_name) + 1;
+    t->last_name = malloc(n);
+    if (t == NULL)
+        return S_MALLOC_ERROR;
+    memcpy(t->last_name, l->last_name, n);
+
+    n = strlen(l->patronymic) + 1;
+    t->patronymic = malloc(n);
+    if (t == NULL)
+        return S_MALLOC_ERROR;
+    memcpy(t->patronymic, l->first_name, n);
+
+    t->date_of_birth = l->date_of_birth;
+    t->gender = l->gender;
+    t->income = l->income;
+    return S_OK;
+}
+
 int liver_write(const Liver *l, FILE *f) {
-    char t[10];
-    strftime(t, 10, "%d.%m.%Y", &l->date_of_birth);
+    char t[20];
+    strftime(t, 20, "%d.%m.%Y", &l->date_of_birth);
     fprintf(f, "%s %s %s %s %c %f\n", l->last_name, l->first_name,
             l->patronymic, t, l->gender, l->income);
     return S_OK;
@@ -172,9 +198,42 @@ int db_init(Db *d) {
     d->ptr = malloc(d->cap * sizeof(Liver));
     if (d->ptr == NULL)
         return S_MALLOC_ERROR;
+
+    d->op_cap = 16;
+    d->op_size = 0;
+    d->ops = malloc(d->op_cap * sizeof(Op));
+    if (d->ptr == NULL) {
+        free(d->ptr);
+        return S_MALLOC_ERROR;
+    }
     return S_OK;
 }
-int db_push(Db *d, Liver l) {
+
+int db_push_op(Db *d, Op op) {
+    if (d->op_size >= d->op_cap) {
+        size_t new_cap = d->op_cap * 2;
+        Op *t = realloc(d->ops, new_cap * sizeof(Op));
+        if (t == NULL)
+            return S_MALLOC_ERROR;
+        d->op_cap = new_cap;
+        d->ops = t;
+    }
+    d->ops[d->op_size] = op;
+    d->op_size++;
+    return S_OK;
+}
+
+int db_pop_op(Db *d, Op *op) {
+    if (d->size == 0)
+        return S_UNDO_EMPTY_ERROR;
+    d->op_size--;
+    *op = d->ops[d->op_size];
+    return S_OK;
+}
+
+int db_insert_(Db *d, size_t i, Liver l) {
+    if (i > d->size)
+        return S_OUT_OF_BOUNDS_ERROR;
     if (d->size >= d->cap) {
         size_t new_cap = d->cap * 2;
         Liver *t = realloc(d->ptr, new_cap * sizeof(Liver));
@@ -183,8 +242,86 @@ int db_push(Db *d, Liver l) {
         d->cap = new_cap;
         d->ptr = t;
     }
-    d->ptr[d->size] = l;
+    for (size_t j = d->size; j > i; j--)
+        d->ptr[j] = d->ptr[j - 1];
+    d->ptr[i] = l;
     d->size++;
+    return S_OK;
+}
+
+int db_insert(Db *d, size_t i, Liver l) {
+    Op op = {.type = OP_INSERT, .pos = i, .l = l};
+    check(db_insert_(d, i, l), {});
+    check(db_push_op(d, op), {});
+    return S_OK;
+}
+
+int db_push_(Db *d, Liver l) {
+    return db_insert_(d, d->size, l);
+}
+
+int db_push(Db *d, Liver l) {
+    return db_insert(d, d->size, l);
+}
+
+int db_remove_(Db *d, size_t i) {
+    if (i >= d->size)
+        return S_OUT_OF_BOUNDS_ERROR;
+    for (size_t j = i; j < d->size - 1; j++) {
+        d->ptr[j] = d->ptr[j + 1];
+    }
+    d->size--;
+    return S_OK;
+}
+
+int db_remove(Db *d, size_t i) {
+    if (i >= d->size)
+        return S_OUT_OF_BOUNDS_ERROR;
+    Op op = {.type = OP_REMOVE, .pos = i, .l = d->ptr[i]};
+    check(db_remove_(d, i), {});
+    check(db_push_op(d, op), {});
+    return S_OK;
+}
+
+int db_update_(Db *d, size_t i, Liver l) {
+    if (i >= d->size)
+        return S_OUT_OF_BOUNDS_ERROR;
+    d->ptr[i] = l;
+    return S_OK;
+}
+
+int db_update(Db *d, size_t i, Liver l) {
+    if (i >= d->size)
+        return S_OUT_OF_BOUNDS_ERROR;
+    Liver l_old = {0};
+    liver_copy(&l_old, &d->ptr[i]);
+    Op op = {.type = OP_UPDATE, .pos = i, .l = l_old};
+    liver_free(&d->ptr[i]);
+    check(db_update_(d, i, l), {});
+    check(db_push_op(d, op), {});
+    return S_OK;
+}
+
+int db_undo(Db *d) {
+    Op op;
+    check(db_pop_op(d, &op),
+          fprintf(stderr,
+                  "ERROR: impossible to undo, not actions were performed"));
+    switch (op.type) {
+    case OP_INSERT:
+        check(db_remove_(d, op.pos), {});
+        liver_free(&op.l);
+        break;
+    case OP_UPDATE:
+        liver_free(&d->ptr[op.pos]);
+        check(db_update_(d, op.pos, op.l), {});
+        break;
+    case OP_REMOVE:
+        check(db_insert_(d, op.pos, op.l), {});
+        break;
+    default:
+        fprintf(stderr, "ERROR: unreachable\n");
+    }
     return S_OK;
 }
 
@@ -200,7 +337,7 @@ int db_read_file(Db *d, FILE *f) {
         const char *s = line;
         Liver l = {0};
         check(liver_from_str(&l, s), free(line));
-        check(db_push(d, l), free(line));
+        check(db_push_(d, l), free(line));
     }
     free(line);
     return S_OK;
@@ -210,7 +347,11 @@ int db_free(Db *d) {
     for (size_t i = 0; i < d->size; i++) {
         liver_free(&d->ptr[i]);
     }
+    for (size_t i = 0; i < d->op_size; i++) {
+        liver_free(&d->ops[i].l);
+    }
     free(d->ptr);
+    free(d->ops);
     return S_OK;
 }
 int db_write(const Db *d, FILE *f) {
@@ -224,5 +365,6 @@ int db_print(const Db *d) {
         printf("[%zu]:\t", i);
         liver_print(&d->ptr[i]);
     }
+    printf("\n");
     return S_OK;
 }
