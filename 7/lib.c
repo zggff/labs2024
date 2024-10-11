@@ -224,7 +224,7 @@ int db_push_op(Db *d, Op op) {
 }
 
 int db_pop_op(Db *d, Op *op) {
-    if (d->size == 0)
+    if (d->op_size == 0)
         return S_UNDO_EMPTY_ERROR;
     d->op_size--;
     *op = d->ops[d->op_size];
@@ -250,7 +250,8 @@ int db_insert_(Db *d, size_t i, Liver l) {
 }
 
 int db_insert(Db *d, size_t i, Liver l) {
-    Op op = {.type = OP_INSERT, .pos = i, .l = l};
+    Liver l2 = {0};
+    Op op = {.type = OP_INSERT, .pos = i, .l = l2};
     check(db_insert_(d, i, l), {});
     check(db_push_op(d, op), {});
     return S_OK;
@@ -306,7 +307,7 @@ int db_undo(Db *d) {
     Op op;
     check(db_pop_op(d, &op),
           fprintf(stderr,
-                  "ERROR: impossible to undo, not actions were performed"));
+                  "ERROR: impossible to undo, not actions were performed\n"));
     switch (op.type) {
     case OP_INSERT:
         check(db_remove_(d, op.pos), {});
