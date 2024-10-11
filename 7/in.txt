@@ -1,4 +1,6 @@
 Petrov Ivan Petrovich 10.01.2004 M 12
 Ivanov Petr Ivanovich 10.11.2004 M 121
+Ivanov Ivan Ivanovich 10.11.2004 M 121
+Vasiliev Mark Ivanovich 10.11.2004 M 121
 Ivanova Tanya  10.01.2003 W 142
 Alexandrova Katya  10.01.2003 W 142

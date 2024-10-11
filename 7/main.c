@@ -167,9 +167,63 @@ int handle_undo(Db *d, const char *s) {
     (void)s;
     return db_undo(d);
 }
-// int handle_find(Db *d, const char *s);
 
 typedef int (*handle)(Db *f, const char *s);
+
+#define handle_find_(field, type, parser, eq)                                  \
+    int handle_find_##field(Db *d, const char *s) {                            \
+        type a;                                                                \
+        check(parser(&a, &s, isspace), {});                                    \
+        for (size_t i = 0; i < d->size; i++) {                                 \
+            Liver l = d->ptr[i];                                               \
+            if (eq(a, l.field) == 0) {                                         \
+                printf("[%zu]:\t", i);                                         \
+                liver_print(&d->ptr[i]);                                       \
+            }                                                                  \
+        }                                                                      \
+        printf("\n");                                                          \
+        return S_OK;                                                           \
+    }
+
+#define tm_compare(a, b) !(a.tm_year == b.tm_year && a.tm_yday == b.tm_yday)
+#define num_compare(a, b) a != b
+
+handle_find_(last_name, char *, parse_field_str, strcmp);
+handle_find_(first_name, char *, parse_field_str, strcmp);
+handle_find_(patronymic, char *, parse_field_str, strcmp);
+handle_find_(date_of_birth, tm, parse_field_time, tm_compare);
+handle_find_(gender, char, parse_field_char, num_compare);
+handle_find_(income, float, parse_field_float, num_compare);
+
+int handle_find(Db *d, const char *s) {
+    char *op;
+    check(parse_field_str(&op, &s, isspace), {});
+    const char *ops[] = {"first_name",    "last_name", "patronymic",
+                         "date_of_birth", "gender",    "income"};
+    handle handles[] = {handle_find_first_name, handle_find_last_name,
+                        handle_find_patronymic, handle_find_date_of_birth,
+                        handle_find_gender,     handle_find_income};
+    bool found = false;
+    for (size_t i = 0; i < sizeof(ops) / sizeof(ops[0]); i++) {
+        if (strcmp(op, ops[i]) == 0) {
+            check(handles[i](d, s), free(op));
+            found = true;
+            break;
+        }
+    }
+    if (!found) {
+        fprintf(stderr, "ERROR: unknown field [%s]\n", op);
+        fprintf(stderr, "supported fields: {");
+        for (size_t i = 0; i < sizeof(ops) / sizeof(ops[0]); i++) {
+            fprintf(stderr, "%s, ", ops[i]);
+        }
+        fprintf(stderr, "}\n");
+        free(op);
+        return S_INPUT_ERROR;
+    }
+    free(op);
+    return S_OK;
+}
 
 int main(int argc, const char *argw[]) {
     if (argc < 2) {
@@ -186,9 +240,10 @@ int main(int argc, const char *argw[]) {
     db_init(&d);
     db_read_file(&d, f);
 
-    const char *ops[] = {"print", "write", "push", "remove", "update", "undo"};
-    handle handles[] = {handle_print,  handle_write,  handle_push,
-                        handle_remove, handle_update, handle_undo};
+    const char *ops[] = {"print",  "write", "push", "remove",
+                         "update", "find",  "undo"};
+    handle handles[] = {handle_print,  handle_write, handle_push, handle_remove,
+                        handle_update, handle_find,  handle_undo};
 
     char *line = NULL;
     size_t line_len = 0;
