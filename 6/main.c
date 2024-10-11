@@ -49,7 +49,7 @@ int advance_string(void **f, const char *s) {
 
 typedef int (*scanner)(void **f, const char *s, ...);
 typedef int (*vscanner)(void **f, const char *s, va_list valist);
-typedef int (*seeker)(void **f);
+typedef int (*seeker)(void **f, int prev);
 
 int fscanf_wrapper(void **f, const char *s, ...) {
     va_list valist;
@@ -78,12 +78,13 @@ int vsscanf_wrapper(void **f, const char *s, va_list valist) {
     return res;
 }
 
-int fseek_wrapper(void **f) {
-    fseek(*f, -1, SEEK_CUR);
+int fseek_wrapper(void **f, int prev) {
+    ungetc(prev, *f);
     return 0;
 }
 
-int sseek_wrapper(void **f) {
+int sseek_wrapper(void **f, int prev) {
+    (void) prev;
     char *c = *f;
     c--;
     *f = c;
@@ -115,7 +116,7 @@ int scan_roman(void **f, scanner scan, seeker seek, int *n) {
             if (c == s[i])
                 break;
         if (c != s[i]) {
-            seek(f);
+            seek(f, c);
             break;
         }
         if (prev < ns[i])
@@ -147,7 +148,7 @@ int scan_zeckendorf(void **f, scanner scan, seeker seek, unsigned int *n) {
 
     while (c) {
         if (c != '0' && c != '1') {
-            seek(f);
+            seek(f, c);
             return 0;
         }
         if (c == '1' && c0 == '1')
@@ -198,7 +199,7 @@ int scan_base(void **f, scanner scan, seeker seek, int *n, int base,
     int num = 0;
     while (c) {
         if (parse_digit(&digit, base, c, start)) {
-            seek(f);
+            seek(f, c);
             break;
         }
         num = num * base + digit;
