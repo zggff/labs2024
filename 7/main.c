@@ -16,6 +16,13 @@ int handle_push(Db *d, const char *s) {
 int handle_remove(Db *d, const char *s) {
     size_t i;
     check(parse_field_uint(&i, &s, isspace), {});
+    if (i >= d->size) {
+        fprintf(stderr,
+                "ERROR: out of bounds: tried to remove index [%zu] in an array "
+                "of length [%zu]\n",
+                i, d->size);
+        return S_OUT_OF_BOUNDS_ERROR;
+    }
     return db_remove(d, i);
 }
 
