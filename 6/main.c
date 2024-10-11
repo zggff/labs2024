@@ -148,7 +148,7 @@ int scan_zeckendorf(void **f, scanner scan, seeker seek, unsigned int *n) {
     while (c) {
         if (c != '0' && c != '1') {
             seek(f);
-            break;
+            return 0;
         }
         if (c == '1' && c0 == '1')
             break;
@@ -255,6 +255,27 @@ int scanf_general(void **f, scanner scan, vscanner vscan, seeker seek,
                 break;
             prev += 3;
         }
+        if (prev[0] != '%' || (prev[0] == '%' && prev[1] == '%')) {
+            cnt++;
+            bool end = false;
+            char c;
+
+            for (; prev < str; prev++) {
+                if (!scan(f, "%c", &c)) {
+                    end = true;
+                    break;
+                }
+                if (*prev != c) {
+                    end = true;
+                    break;
+                }
+            }
+            if (str)
+                str[0] = '%';
+            if (end)
+                break;
+            continue;
+        }
 
         va_list copy;
         va_copy(copy, valist);
@@ -318,7 +339,10 @@ int main(void) {
     c = 0;
     f = 0;
     s = "ffe1, 100, -ZZ : 0.1";
-    oversscanf(s, "%Cv", &a, 16, &b, 2, &c, 36, &f);
+    r = oversscanf(s, "%Cv, %Cv, %CV : %f", &a, 16, &b, 2, &c, 36, &f);
+    printf("%d\t%d %d %d %f\n", r, a, b, c, f);
+
+    s = "ffe1, 102, -ZZ : 0.1";
     r = oversscanf(s, "%Cv, %Cv, %CV : %f", &a, 16, &b, 2, &c, 36, &f);
     printf("%d\t%d %d %d %f\n", r, a, b, c, f);
 
