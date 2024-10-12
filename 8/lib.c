@@ -75,7 +75,7 @@ int is_separator(int c) {
 }
 
 int poly_parse(Poly *res, const char *str) {
-    res->n = 0;
+    res->n = strchr(str, 'x') != 0;
     const char *s = str;
     while (true) {
         char *end;
@@ -93,6 +93,7 @@ int poly_parse(Poly *res, const char *str) {
         if (pow > res->n)
             res->n = pow;
     }
+
     res->fs = malloc((res->n + 1) * sizeof(double));
     if (!res->fs)
         return S_MALLOC_ERROR;
@@ -141,81 +142,133 @@ int poly_parse(Poly *res, const char *str) {
     return S_OK;
 }
 
-int poly_print(const Poly *a) {
-    printf("%fx^%d", a->fs[a->n], a->n);
-    bool printed = false;
-    for (int n = a->n; n >= 2; n--) {
-        printed = printed | (a->fs[n] != 0);
-        if (a->fs[n] < 0)
-            printf(" - %fx^%d", fabs(a->fs[n]), n);
-        else if (a->fs[n] > 0)
-            printf(" + %fx^%d", fabs(a->fs[n]), n);
-    }
-    if (a->n >= 1) {
-        printed = printed | (a->fs[1] != 0);
-        if (a->fs[1] < 0)
-            printf(" - %fx", fabs(a->fs[1]));
-        else if (a->fs[1] > 0)
-            printf(" + %fx", fabs(a->fs[1]));
-    }
-    if (!printed)
-        printf("%f", a->fs[0]);
-    else {
-        if (a->fs[0] < 0)
-            printf(" - %f", fabs(a->fs[0]));
-        else if (a->fs[0] > 0)
-            printf(" + %f", fabs(a->fs[0]));
+int poly_print(Poly a) {
+    for (int n = a.n; n >= 0; n--) {
+        char op = a.fs[n] < 0 ? '-' : '+';
+        char *x;
+        if (n == 0)
+            x = "";
+        else if (n == 1)
+            x = "x";
+        else
+            x = "x^%d";
+        if (n == a.n)
+            printf("%f", a.fs[n]);
+        else
+            printf("%c %f", op, fabs(a.fs[n]));
+        printf(x, n);
+        if (n > 0)
+            printf(" ");
     }
     return 0;
 }
 
 #define SWAP_DESC(a, b)                                                        \
     {                                                                          \
-        if (a->n > b->n) {                                                     \
-            const Poly *_temp_val_ = a;                                        \
+        if (a.n > b.n) {                                                       \
+            const Poly _temp_val_ = a;                                         \
             a = b;                                                             \
             b = _temp_val_;                                                    \
         }                                                                      \
     }
 
-int add_(double *res, double a, double b) {
-    *res = a + b;
-    return S_OK;
-}
-int sub_(double *res, double a, double b) {
-    *res = a - b;
-    return S_OK;
-}
-
-int poly_op_add_sub(Poly *res, const Poly *a, const Poly *b,
-                    int (*op)(double *, double, double)) {
-    SWAP_DESC(a, b);
-    res->n = a->n;
+int poly_init(Poly *res, int n) {
+    res->n = n;
     res->fs = malloc((res->n + 1) * sizeof(double));
     if (!res->fs)
         return S_MALLOC_ERROR;
     memset(res->fs, 0, (res->n + 1) * sizeof(double));
-    int i;
-    for (i = 0; i <= b->n; i++)
-        op(&res->fs[i], a->fs[i], b->fs[i]);
-    for (; i <= a->n; i++)
-        res->fs[i] = a->fs[i];
+    return S_OK;
+}
+
+int poly_free(Poly a) {
+    free(a.fs);
+    return S_OK;
+}
+
+int poly_mul_by_double(Poly *res, Poly a, double mul) {
+    poly_init(res, a.n);
+    for (int i = 0; i <= res->n; i++)
+        res->fs[i] = a.fs[i] * mul;
+    return S_OK;
+}
+
+int poly_op_add(Poly *res, Poly a, Poly b) {
+    int r, i;
+    SWAP_DESC(a, b);
+    if ((r = poly_init(res, a.n)))
+        return r;
+    for (i = 0; i <= b.n; i++)
+        res->fs[i] = a.fs[i] + b.fs[i];
+    for (; i <= a.n; i++)
+        res->fs[i] = a.fs[i];
     while (res->n > 0 && res->fs[res->n] == 0)
         res->n--;
 
     return S_OK;
 }
 
-inline int poly_add(Poly *res, const Poly *a, const Poly *b) {
-    return poly_op_add_sub(res, a, b, add_);
+int poly_sub(Poly *res, Poly a, Poly b) {
+    Poly neg;
+    int r;
+    if ((r = poly_mul_by_double(&neg, b, -1)))
+        return r;
+    r = poly_op_add(res, a, neg);
+    poly_free(neg);
+    return r;
 }
 
-inline int poly_sub(Poly *res, const Poly *a, const Poly *b) {
-    return poly_op_add_sub(res, a, b, sub_);
+int poly_mult(Poly *res, Poly a, Poly b) {
+    SWAP_DESC(a, b);
+    int r;
+    if ((r = poly_init(res, a.n + b.n)))
+        return r;
+    for (int i = 0; i <= a.n; i++) {
+        for (int j = 0; j <= b.n; j++) {
+            res->fs[i + j] += a.fs[i] * b.fs[j];
+        }
+    }
+    return S_OK;
 }
 
-int poly_div(Poly *res, const Poly *a, const Poly *b);
-int poly_mod(Poly *res, const Poly *a, const Poly *b);
-int poly_comp(Poly *res, const Poly *a, const Poly *b);
-int poly_diff(Poly *res, const Poly *a);
-int poly_eval(double *res, const Poly *a, double x);
+int powd(double *res, double x, unsigned exp) {
+    *res = 1;
+    while (exp) {
+        if (exp & 1)
+            (*res) *= x;
+        exp >>= 1;
+        x *= x;
+    }
+    return 0;
+}
+
+int poly_pow(Poly *res, Poly p, unsigned exp) {
+    Poly result, base;
+    if (poly_init(&result, 0) || poly_mul_by_double(&base, p, 1))
+        return S_MALLOC_ERROR;
+    result.fs[0] = 1;
+    while (exp) {
+        if (exp & 1) {
+            Poly new_r;
+            if (poly_mult(&new_r, result, base)) {
+                poly_free(result);
+                poly_free(base);
+                return S_MALLOC_ERROR;
+            }
+            poly_free(result);
+            result = new_r;
+        }
+        exp >>= 1;
+        Poly new_base;
+        if (poly_mult(&new_base, base, base)) {
+            poly_free(base);
+            poly_free(result);
+            return S_MALLOC_ERROR;
+        }
+        poly_free(base);
+        base = new_base;
+    }
+    poly_free(base);
+    *res = result;
+    return S_OK;
+}

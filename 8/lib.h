@@ -31,14 +31,19 @@ typedef struct Polynomial {
 } Poly;
 
 int poly_parse(Poly *res, const char *s);
-int poly_print(const Poly *a);
-int poly_add(Poly *res, const Poly *a, const Poly *b);
-int poly_add(Poly *res, const Poly *a, const Poly *b);
-int poly_sub(Poly *res, const Poly *a, const Poly *b);
-int poly_div(Poly *res, const Poly *a, const Poly *b);
-int poly_mod(Poly *res, const Poly *a, const Poly *b);
-int poly_comp(Poly *res, const Poly *a, const Poly *b);
-int poly_diff(Poly *res, const Poly *a);
-int poly_eval(double *res, const Poly *a, double x);
+int poly_free(Poly a);
+int poly_print(Poly a);
+int poly_mul_by_double(Poly *res, Poly a, double mul);
+int poly_add(Poly *res, Poly a, Poly b);
+int poly_sub(Poly *res, Poly a, Poly b);
+int poly_mult(Poly *res, Poly a,Poly b);
+int poly_div(Poly *res, Poly a, Poly b);
+int poly_mod(Poly *res, Poly a, Poly b);
+int poly_comp(Poly *res, Poly a, Poly b);
+int poly_diff(Poly *res, Poly a);
+int poly_eval(double *res, Poly a, double x);
+
+int powd(double *res, double x, unsigned n);
+int poly_pow(Poly *res, Poly p, unsigned n);
 
 #endif
