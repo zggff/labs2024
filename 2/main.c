@@ -163,11 +163,32 @@ int calc_norm_max(float *res, const Vector *v) {
     return 0;
 }
 
+int pow_custom(double *res, double x, int n) {
+    bool rev = n < 0;
+    if (rev)
+        n *= -1;
+    *res = 1;
+    for (;;) {
+        if (n & 1)
+            (*res) *= x;
+        n >>= 1;
+        if (!n)
+            break;
+        x *= x;
+    }
+    if (rev)
+        *res = 1 / *res;
+    return 0;
+}
+
 int calc_norm_p(float *res, const Vector *v, int p) {
     float sum = 0;
     for (int i = 0; i < v->n; i++) {
         float ab = fabsf(v->coord[i]);
-        sum += pow(ab, p);
+        double abp;
+        pow_custom(&abp, ab, p);
+        sum+= abp;
+        // sum += pow(ab, p);
     }
     *res = pow(sum, 1.0 / p);
     return 0;
