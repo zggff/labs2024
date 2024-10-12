@@ -175,7 +175,7 @@ int employee_array_free(EmployeeArray *arr) {
 int employee_array_write_file(EmployeeArray *arr, FILE *fd) {
     for (int i = 0; i < arr->size; i++) {
         Employee a = arr->ptr[i];
-        int r = fprintf(fd, "%lu %s %s %f\n", a.id, a.first_name, a.last_name,
+        int r = fprintf(fd, "%lu;%s;%s;%f\n", a.id, a.first_name, a.last_name,
                         a.pay);
         if (r < 0)
             return S_WRITE_ERROR;
