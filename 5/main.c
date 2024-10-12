@@ -309,16 +309,16 @@ int oversprintf(char *f, const char *s, ...) {
 }
 
 int main(void) {
-    overfprintf(stdout, "hello, [%d] {%.*f} {%u} (%X)\n", 10, 2, 0.5, 125,
+    overfprintf(stdout, "Regular: [%d] {%.*f} {%u} (%X)\n", 10, 2, 0.5, 125,
                 0xff);
-    overfprintf(stdout, "[%Ro] [%Ro] [%Ro]\n", 3549, -49, 191);
-    overfprintf(stdout, "[%Zr] [%Zr] [%Zr]\n", 100, 100, 100);
-    overfprintf(stdout, "[%Cv] [%CV] [%CV] [%CV]\n", 0xffe1, 16, 8, 2, 1293, 36,
+    overfprintf(stdout, "Roman: [%Ro] [%Ro] [%Ro]\n", 3549, -49, 191);
+    overfprintf(stdout, "Zeckendorf: [%Zr] [%Zr] [%Zr]\n", 100, 11, 13);
+    overfprintf(stdout, "ToBase: [%Cv] [%CV] [%CV] [%CV]\n", 0xffe1, 16, 8, 2, 1293, 36,
                 -0xabcd12, 16);
-    overfprintf(stdout, "[%to] [%TO] [%TO] [%TO]\n", "ffe1", 16, "-1000", 2,
+    overfprintf(stdout, "FromBase: [%to] [%TO] [%TO] [%TO]\n", "ffe1", 16, "-1000", 2,
                 "ZZZZZZZZZ", 36, "ZZ", 16);
     char buffer[128] = {0};
-    oversprintf(buffer, "[%mi] [%mi] [%mu] [%mf] [%md]\n", INT32_MAX, INT32_MIN,
+    oversprintf(buffer, "Bytes: [%mi] [%mi] [%mu] [%mf] [%md]\n", INT32_MAX, INT32_MIN,
                 0xffe1, 0.125, 0.125);
     fprintf(stdout, "%s", buffer);
 }
