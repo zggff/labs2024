@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-int parse_field_str(char **res, char const **start, mask m) {
+int parse_field_str(char **res, const char **start, mask m) {
     const char *end = *start;
     while (*end && !m(*end)) {
         end++;
@@ -20,7 +20,7 @@ int parse_field_str(char **res, char const **start, mask m) {
     return S_OK;
 }
 
-int parse_field_uint(unsigned long *res, char const **start, mask m) {
+int parse_field_uint(unsigned long *res, const char **start, mask m) {
     char *ptr;
     *res = strtoul(*start, &ptr, 10);
     bool valid = *ptr == 0;
@@ -38,7 +38,7 @@ int parse_field_uint(unsigned long *res, char const **start, mask m) {
     return S_OK;
 }
 
-int parse_field_float(float *res, char const **start, mask m) {
+int parse_field_float(float *res, const char **start, mask m) {
     char *ptr;
     *res = strtof(*start, &ptr);
     bool valid = *ptr == 0;
@@ -143,7 +143,13 @@ int poly_parse(Poly *res, const char *str) {
 }
 
 int poly_print(Poly a) {
+    if (a.n == 0) {
+        printf("%f", a.fs[0]);
+        return S_OK;
+    }
     for (int n = a.n; n >= 0; n--) {
+        if (a.fs[n] == 0)
+            continue;
         char op = a.fs[n] < 0 ? '-' : '+';
         char *x;
         if (n == 0)
@@ -165,7 +171,7 @@ int poly_print(Poly a) {
 
 #define SWAP_DESC(a, b)                                                        \
     {                                                                          \
-        if (a.n > b.n) {                                                       \
+        if (a.n < b.n) {                                                       \
             const Poly _temp_val_ = a;                                         \
             a = b;                                                             \
             b = _temp_val_;                                                    \
@@ -193,7 +199,7 @@ int poly_mul_by_double(Poly *res, Poly a, double mul) {
     return S_OK;
 }
 
-int poly_op_add(Poly *res, Poly a, Poly b) {
+int poly_add(Poly *res, Poly a, Poly b) {
     int r, i;
     SWAP_DESC(a, b);
     if ((r = poly_init(res, a.n)))
@@ -213,7 +219,7 @@ int poly_sub(Poly *res, Poly a, Poly b) {
     int r;
     if ((r = poly_mul_by_double(&neg, b, -1)))
         return r;
-    r = poly_op_add(res, a, neg);
+    r = poly_add(res, a, neg);
     poly_free(neg);
     return r;
 }

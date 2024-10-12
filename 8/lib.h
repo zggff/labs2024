@@ -20,9 +20,9 @@ typedef enum Status {
 } Status;
 
 typedef int (*mask)(int);
-int parse_field_str(char **res, char const **start, mask m);
-int parse_field_float(float *res, char const **start, mask m);
-int parse_field_uint(unsigned long *res, char const **start, mask m);
+int parse_field_str(char **res, const char **start, mask m);
+int parse_field_float(float *res, const char **start, mask m);
+int parse_field_uint(unsigned long *res, const char **start, mask m);
 int parse_field_char(char *res, char const **start, mask m);
 
 typedef struct Polynomial {
@@ -30,6 +30,7 @@ typedef struct Polynomial {
     double *fs; // array of n + 1 len
 } Poly;
 
+int poly_init(Poly *res, int n);
 int poly_parse(Poly *res, const char *s);
 int poly_free(Poly a);
 int poly_print(Poly a);
