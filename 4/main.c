@@ -127,8 +127,14 @@ int main(void) {
                 break;
             }
         }
-        if (!res)
-            fprintf(stderr, "ERROR: unknown command: [%s]\n", op.ptr);
+        if (!res) {
+            fprintf(stderr, "ERROR: unknown operation: [%s]\n", op.ptr);
+            fprintf(stderr, "supported operations: {");
+            for (size_t i = 0; i < sizeof(ops) / sizeof(ops[0]); i++) {
+                fprintf(stderr, "%s, ", ops[i]);
+            }
+            fprintf(stderr, "}\n");
+        }
         string_free(&op);
     }
     if (line)
