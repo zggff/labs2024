@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -84,7 +85,7 @@ int fseek_wrapper(void **f, int prev) {
 }
 
 int sseek_wrapper(void **f, int prev) {
-    (void) prev;
+    (void)prev;
     char *c = *f;
     c--;
     *f = c;
@@ -93,11 +94,15 @@ int sseek_wrapper(void **f, int prev) {
 
 int scan_roman(void **f, scanner scan, seeker seek, int *n) {
     char c;
-    if (!scan(f, "%c", &c))
+    if (scan(f, "%c", &c) <= 0)
         return 0;
+    while (isspace(c)) {
+        if (scan(f, "%c", &c) <= 0)
+            return 0;
+    }
     bool neg = c == '-';
     if (neg)
-        if (!scan(f, "%c", &c))
+        if (scan(f, "%c", &c) <= 0)
             return 0;
     if (c == '0') {
         *n = 0;
@@ -125,7 +130,7 @@ int scan_roman(void **f, scanner scan, seeker seek, int *n) {
         num += ns[i];
         prev = ns[i];
 
-        if (!scan(f, "%c", &c))
+        if (scan(f, "%c", &c) <= 0)
             break;
     }
 
@@ -137,8 +142,12 @@ int scan_roman(void **f, scanner scan, seeker seek, int *n) {
 int scan_zeckendorf(void **f, scanner scan, seeker seek, unsigned int *n) {
     char c;
     char c0 = '0';
-    if (!scan(f, "%c", &c))
+    if (scan(f, "%c", &c) <= 0)
         return 0;
+    while (isspace(c)) {
+        if (scan(f, "%c", &c) <= 0)
+            return 0;
+    }
 
     int b = 1;
     int t = 1;
@@ -151,8 +160,10 @@ int scan_zeckendorf(void **f, scanner scan, seeker seek, unsigned int *n) {
             seek(f, c);
             return 0;
         }
-        if (c == '1' && c0 == '1')
-            break;
+        if (c == '1' && c0 == '1') {
+            *n = num;
+            return 1;
+        }
 
         if (c == '1') {
             num += a;
@@ -163,11 +174,10 @@ int scan_zeckendorf(void **f, scanner scan, seeker seek, unsigned int *n) {
         b = t;
 
         c0 = c;
-        if (!scan(f, "%c", &c))
+        if (scan(f, "%c", &c) <= 0)
             break;
     }
-    *n = num;
-    return 1;
+    return 0;
 }
 
 int parse_digit(int *digit, int base, char c, char start) {
@@ -188,12 +198,16 @@ int scan_base(void **f, scanner scan, seeker seek, int *n, int base,
         base = 10;
 
     char c;
-    if (!scan(f, "%c", &c))
+    if (scan(f, "%c", &c) <= 0)
         return 0;
+    while (isspace(c)) {
+        if (scan(f, "%c", &c) <= 0)
+            return 0;
+    }
     bool neg = c == '-';
     if (neg)
-        if (!scan(f, "%c", &c))
-            return 0;
+        if (scan(f, "%c", &c) <= 0)
+            return 0; // - is the last symbol
 
     int digit = 0;
     int num = 0;
@@ -203,7 +217,7 @@ int scan_base(void **f, scanner scan, seeker seek, int *n, int base,
             break;
         }
         num = num * base + digit;
-        if (!scan(f, "%c", &c))
+        if (scan(f, "%c", &c) <= 0)
             break;
     }
     num = neg ? -num : num;
@@ -235,12 +249,14 @@ int scanf_general(void **f, scanner scan, vscanner vscan, seeker seek,
             if (!scan_roman(f, scan, seek, n))
                 break;
             prev += 3;
+            cnt++;
         }
         if (strncmp(prev, "%Zr", 3) == 0) {
             unsigned int *n = va_arg(valist, unsigned int *);
             if (!scan_zeckendorf(f, scan, seek, n))
                 break;
             prev += 3;
+            cnt++;
         }
         if (strncmp(prev, "%Cv", 3) == 0) {
             int *n = va_arg(valist, int *);
@@ -248,6 +264,7 @@ int scanf_general(void **f, scanner scan, vscanner vscan, seeker seek,
             if (!scan_base(f, scan, seek, n, base, 'a'))
                 break;
             prev += 3;
+            cnt++;
         }
         if (strncmp(prev, "%CV", 3) == 0) {
             int *n = va_arg(valist, int *);
@@ -255,9 +272,9 @@ int scanf_general(void **f, scanner scan, vscanner vscan, seeker seek,
             if (!scan_base(f, scan, seek, n, base, 'A'))
                 break;
             prev += 3;
+            cnt++;
         }
         if (prev[0] != '%' || (prev[0] == '%' && prev[1] == '%')) {
-            cnt++;
             bool end = false;
             char c;
 
@@ -328,7 +345,7 @@ int oversscanf(char *f, const char *s, ...) {
 }
 
 int main(void) {
-    char *s = "13, 24";
+    char *s = " 13, 24";
     int a, b, c;
     float f = 0;
     int r = 0;
