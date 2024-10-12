@@ -1,6 +1,6 @@
 
-#include <math.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,12 +34,33 @@ int binomial(double *res, int n, int k) {
     return S_OK;
 }
 
+int pow_custom(double *res, double x, int n) {
+    bool rev = n < 0;
+    if (rev)
+        n *= -1;
+    *res = 1;
+    for (;;) {
+        if (n & 1)
+            (*res) *= x;
+        n >>= 1;
+        if (!n)
+            break;
+        x *= x;
+    }
+    if (rev)
+        *res = 1 / *res;
+    return 0;
+}
+
 int calculate_binomial(double a, int n, double f, double *res) {
     // calculate (x - a)^n
     for (int k = 0; k <= n; k++) {
         double bin;
         binomial(&bin, n, k);
-        bin *= pow(a, k);
+        double ap;
+        pow_custom(&ap, a, k);
+        bin *= ap;
+        // bin *= pow(a, k);
         bin *= f;
         res[n - k] += bin;
     }
