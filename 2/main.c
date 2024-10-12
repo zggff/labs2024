@@ -1,4 +1,5 @@
 #include <math.h>
+#include <stdbool.h>
 #include <stdio.h>
 
 #include <stdarg.h>
@@ -42,28 +43,21 @@ int handle_1(void) {
     }
     return 0;
 }
-
 int pow_custom(double *res, double x, int n) {
-    if (n == 0) {
-        *res = 1;
-        return 0;
+    bool rev = n < 0;
+    if (rev)
+        n *= -1;
+    *res = 1;
+    for (;;) {
+        if (n & 1)
+            (*res) *= x;
+        n >>= 1;
+        if (!n)
+            break;
+        x *= x;
     }
-    if (n == 1) {
-        *res = x;
-        return 0;
-    }
-    if (n < 0) {
-        pow_custom(res, x, -n);
+    if (rev)
         *res = 1 / *res;
-        return 0;
-    }
-    if (n % 2 == 1) {
-        pow_custom(res, x, n - 1);
-        *res *= x;
-        return 0;
-    }
-    pow_custom(res, x, n / 2);
-    *res = (*res) * (*res);
     return 0;
 }
 
