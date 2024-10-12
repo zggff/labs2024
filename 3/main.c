@@ -185,7 +185,7 @@ int employee_array_write_file(EmployeeArray *arr, FILE *fd) {
 
 int main(int argc, const char *argw[]) {
     if (argc < 4) {
-        fprintf(stderr, "ERROR: not enough args: expected 2, got: %d\n",
+        fprintf(stderr, "ERROR: not enough args: expected 3, got: %d\n",
                 argc - 1);
         return 1;
     }
