@@ -13,13 +13,29 @@ int main(void) {
     printf("\n");
     Poly sqr;
     r = poly_pow(&sqr, p, 7);
-     if (r) {
+    if (r) {
         printf("%d\n", r);
         return 2;
     }
+    printf("\n");
     poly_print(sqr);
     printf("\n");
+    Poly diff;
+    poly_diff(&diff, sqr);
+
+    printf("\n");
+    poly_print(diff);
+    printf("\n");
+
+    double a, b, c;
+    double x = 1.124;
+    poly_eval(&a, p, x);
+    poly_eval(&b, sqr, x);
+    poly_eval(&c, diff, x);
+    printf("\n%f %f %f\n", a, b, c);
+
     poly_free(p);
     poly_free(sqr);
+    poly_free(diff);
     return 0;
 }

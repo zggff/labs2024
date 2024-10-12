@@ -272,3 +272,22 @@ int poly_pow(Poly *res, Poly p, unsigned exp) {
     *res = result;
     return S_OK;
 }
+
+int poly_diff(Poly *res, Poly a) {
+    if (poly_init(res, a.n - 1))
+        return S_MALLOC_ERROR;
+    for (int i = 1; i <= a.n; i++) {
+        res->fs[i - 1] = i * a.fs[i];
+    }
+    return S_OK;
+}
+int poly_eval(double *res, Poly a, double x) {
+    *res = 0;
+    double xp = 1;
+    for (int i = 0; i <= a.n; i++) {
+        *res += xp * a.fs[i];
+        xp *= x;
+    }
+    return S_OK;
+}
+
