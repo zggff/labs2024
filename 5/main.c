@@ -50,7 +50,7 @@ int handle_find_id(Db *d, const char *s, FILE *out) {
 }
 int handle_find_fn(Db *d, const char *s, FILE *out) {
     (void)out;
-     char *fn;
+    char *fn;
     int r;
     Db filtered = {0};
     if ((r = db_init(&filtered)))
@@ -197,8 +197,14 @@ int main(int argc, const char *argw[]) {
                 break;
             }
         }
-        if (!found)
-            fprintf(stderr, "ERROR: unknown operation [%s]\n", op);
+        if (!found) {
+            fprintf(stderr, "ERROR: unknown operation [%s]\n", line);
+            fprintf(stderr, "supported operations: {");
+            for (size_t i = 0; i < sizeof(ops) / sizeof(ops[0]); i++) {
+                fprintf(stderr, "%s, ", ops[i]);
+            }
+            fprintf(stderr, "}\n");
+        }
         free(op);
     }
     db_free(&db);
