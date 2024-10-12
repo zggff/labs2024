@@ -85,8 +85,8 @@ int main(void) {
     printf("\n");
     free(res);
 
-    n = 2;
-    check(convert(0.001, 4, &res, n, 0.0, 0.0, 1.0), {});
+    n = 4;
+    check(convert(0.001, 3, &res, n, -2.0, 1.0, -3.0, 0.0, 1.0), {});
     for (int i = 0; i <= n; i++) {
         printf("%f ", res[i]);
     }
