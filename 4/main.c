@@ -81,13 +81,34 @@ Status is_convex(bool *res, ...) {
     return S_OK;
 }
 
+int pow_custom(double *res, double x, int n) {
+    bool rev = n < 0;
+    if (rev)
+        n *= -1;
+    *res = 1;
+    for (;;) {
+        if (n & 1)
+            (*res) *= x;
+        n >>= 1;
+        if (!n)
+            break;
+        x *= x;
+    }
+    if (rev)
+        *res = 1 / *res;
+    return 0;
+}
+
 Status polynomial(double *res, double x, int n, ...) {
     va_list valist;
     va_start(valist, n);
     *res = 0;
     for (int i = n; i >= 0; i--) {
         double k = va_arg(valist, double);
-        *res += k * pow(x, i);
+        double xp;
+        pow_custom(&xp, x, i);
+        *res += k * xp;
+        // *res += k * pow(x, i);
     }
     va_end(valist);
     return S_OK;
@@ -192,7 +213,7 @@ Status find_kaprekars(unsigned int base, ...) {
 }
 
 #ifndef MODE
-#define MODE 3
+#define MODE 2
 #endif
 
 #if MODE == 1
