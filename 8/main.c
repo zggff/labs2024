@@ -36,18 +36,19 @@ int handle_mult(Poly *r, Poly a, Poly b) {
     return S_OK;
 }
 int handle_div(Poly *r, Poly a, Poly b) {
-    (void)r;
-    (void)a;
-    (void)b;
-    fprintf(stderr, "ERROR: div not implemented\n");
-    return 3;
+    if (poly_div(r, a, b))
+        return S_MALLOC_ERROR;
+    poly_print(*r);
+    printf("\n");
+    return S_OK;
 }
 int handle_mod(Poly *r, Poly a, Poly b) {
-    (void)r;
-    (void)a;
-    (void)b;
-    fprintf(stderr, "ERROR: mod not implemented\n");
-    return 3;
+    poly_free(*r);
+    if (poly_mod(r, a, b))
+        return S_MALLOC_ERROR;
+    poly_print(*r);
+    printf("\n");
+    return S_OK;
 }
 int handle_eval(Poly *r, Poly a, Poly b) {
     (void)r;
@@ -56,12 +57,15 @@ int handle_eval(Poly *r, Poly a, Poly b) {
                 "ERROR: expected double as second argument, got polynom\n");
         return S_PARSE_ERROR;
     }
+    if (poly_init(r, 0))
+        return S_MALLOC_ERROR;
     double res;
     poly_eval(&res, a, b.fs[0]);
     printf("%f\n", res);
     return S_OK;
 }
 int handle_diff(Poly *r, Poly a, Poly b) {
+    poly_free(*r);
     (void)b;
     if (poly_diff(r, a))
         return 1;
@@ -70,11 +74,12 @@ int handle_diff(Poly *r, Poly a, Poly b) {
     return S_OK;
 }
 int handle_cmps(Poly *r, Poly a, Poly b) {
-    (void)r;
-    (void)a;
-    (void)b;
-    fprintf(stderr, "ERROR: cmps not implemented\n");
-    return 3;
+    poly_free(*r);
+    if (poly_comp(r, a, b))
+        return S_MALLOC_ERROR;
+    poly_print(*r);
+    printf("\n");
+    return S_OK;
 }
 
 #define FREE_ALL()                                                             \
@@ -134,12 +139,12 @@ int main(int argc, const char *argw[]) {
                 return 1;
             }
         } else {
-            if (poly_parse(&y, a)) {
+            if (poly_parse(&y, a) || poly_mul_by_double(&x, buf, 1)) {
                 FREE_ALL();
                 return 1;
             }
-            x = buf;
         }
+        poly_free(buf);
 
         handle *h = NULL;
         for (size_t i = 0; i < sizeof(ops) / sizeof(ops[0]); i++) {
@@ -161,17 +166,15 @@ int main(int argc, const char *argw[]) {
             fprintf(stderr, "}\n");
         }
 
-        // printf("[%s] [", op);
-        // poly_print(x);
-        // printf("] [");
-        // poly_print(y);
-        // printf("] [%s]\n", s);
         free(op);
         free(a);
         free(b);
+        poly_free(x);
+        poly_free(y);
     }
     free(line);
     fclose(f);
+    poly_free(buf);
 
     return 0;
 }

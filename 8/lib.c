@@ -297,3 +297,116 @@ int poly_eval(double *res, Poly a, double x) {
     return S_OK;
 }
 
+int poly_div_inner(Poly *div, Poly *mod, Poly a, Poly b) {
+    // a / b
+    if (b.n > a.n) {
+        if (poly_init(div, 0))
+            return S_MALLOC_ERROR;
+        if (poly_mul_by_double(mod, a, 1)) {
+            poly_free(*div);
+            return S_MALLOC_ERROR;
+        }
+        return S_OK;
+    }
+
+    Poly r_mod;
+    Poly r_div;
+    if (poly_init(&r_div, 0))
+        return S_MALLOC_ERROR;
+    if (poly_mul_by_double(&r_mod, a, 1)) {
+        poly_free(r_div);
+        return S_MALLOC_ERROR;
+    };
+    while (r_mod.n >= b.n) {
+        double power = r_mod.n - b.n;
+        Poly r_cur;
+        if (poly_init(&r_cur, power)) {
+            poly_free(r_div);
+            poly_free(r_mod);
+            return S_MALLOC_ERROR;
+        };
+        r_cur.fs[r_cur.n] = r_mod.fs[r_mod.n] / b.fs[b.n];
+
+        Poly r_add;
+        int r = poly_add(&r_add, r_div, r_cur);
+        poly_free(r_div);
+        r_div = r_add;
+        if (r) {
+            poly_free(r_cur);
+            poly_free(r_mod);
+            poly_free(r_div);
+            return r;
+        }
+
+        Poly r_mul;
+        r = poly_mult(&r_mul, r_cur, b);
+        poly_free(r_cur);
+        if (r) {
+            poly_free(r_mod);
+            poly_free(r_div);
+            return r;
+        }
+
+        Poly r_sub;
+        r = poly_sub(&r_sub, r_mod, r_mul);
+        poly_free(r_mod);
+        poly_free(r_mul);
+        r_mod = r_sub;
+        if (r) {
+            poly_free(r_mod);
+            poly_free(r_div);
+            return r;
+        }
+    }
+    *mod = r_mod;
+    *div = r_div;
+    return S_OK;
+}
+
+int poly_div(Poly *res, Poly a, Poly b) {
+    Poly mod;
+    if (poly_div_inner(res, &mod, a, b))
+        return S_MALLOC_ERROR;
+    poly_free(mod);
+    return S_OK;
+}
+int poly_mod(Poly *res, Poly a, Poly b) {
+    Poly div;
+    if (poly_div_inner(&div, res, a, b))
+        return S_MALLOC_ERROR;
+    poly_free(div);
+    return S_OK;
+}
+
+int poly_comp(Poly *res, Poly a, Poly b) {
+    Poly s;
+    if (poly_init(&s, 0))
+        return S_MALLOC_ERROR;
+    for (int i = 0; i <= a.n; i++) {
+        if (a.fs[i] == 0)
+            continue;
+        Poly powed;
+        if (poly_pow(&powed, b, i)) {
+            poly_free(s);
+            return S_MALLOC_ERROR;
+        }
+        Poly sub_res;
+        int r = poly_mul_by_double(&sub_res, powed, a.fs[i]);
+        poly_free(powed);
+        if (r) {
+            poly_free(s);
+            return r;
+        }
+        Poly sum;
+        r = poly_add(&sum, s, sub_res);
+        poly_free(sub_res);
+        poly_free(s);
+        s = sum;
+        if (r) {
+            poly_free(s);
+            return r;
+        }
+    }
+    *res = s;
+    return S_OK;
+}
