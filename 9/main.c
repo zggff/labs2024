@@ -51,23 +51,15 @@ int main(int argc, const char *argw[]) {
     FILE *f = fopen(argw[1], "r");
     if (!f) {
         fprintf(stderr, "ERROR: failed to open file [%s]\n", argw[1]);
+        free(sep);
         return 1;
     }
 
-    char *word = NULL;
-    size_t word_cap = 0;
-    printf("(%s)\n", sep);
-    while (true) {
-        int n = getword(&word, &word_cap, f, sep);
-        if (n <= 0)
-            break;
-        n--;
-        word[n] = 0;
-        if (n == 0)
-            continue;
-        printf("[%s]\n", word);
-    }
-    free(word);
+    Tree t = {0};
+    Status s = tree_parse_file(&t, sep, f);
+    fclose(f);
     free(sep);
-    return 0;
+    tree_print(&t);
+    tree_free(&t);
+    return s;
 }
