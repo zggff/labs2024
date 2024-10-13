@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,6 +16,7 @@ int is_comma_or_bracket(int c) {
 typedef int (*handle)(Poly *r, Poly a, Poly b);
 
 int handle_add(Poly *r, Poly a, Poly b) {
+    poly_free(*r);
     if (poly_add(r, a, b))
         return S_MALLOC_ERROR;
     poly_print(*r);
@@ -22,6 +24,7 @@ int handle_add(Poly *r, Poly a, Poly b) {
     return S_OK;
 }
 int handle_sub(Poly *r, Poly a, Poly b) {
+    poly_free(*r);
     if (poly_sub(r, a, b))
         return S_MALLOC_ERROR;
     poly_print(*r);
@@ -29,6 +32,7 @@ int handle_sub(Poly *r, Poly a, Poly b) {
     return S_OK;
 }
 int handle_mult(Poly *r, Poly a, Poly b) {
+    poly_free(*r);
     if (poly_mult(r, a, b))
         return S_MALLOC_ERROR;
     poly_print(*r);
@@ -36,6 +40,7 @@ int handle_mult(Poly *r, Poly a, Poly b) {
     return S_OK;
 }
 int handle_div(Poly *r, Poly a, Poly b) {
+    poly_free(*r);
     if (poly_div(r, a, b))
         return S_MALLOC_ERROR;
     poly_print(*r);
@@ -57,8 +62,6 @@ int handle_eval(Poly *r, Poly a, Poly b) {
                 "ERROR: expected double as second argument, got polynom\n");
         return S_PARSE_ERROR;
     }
-    if (poly_init(r, 0))
-        return S_MALLOC_ERROR;
     double res;
     poly_eval(&res, a, b.fs[0]);
     printf("%f\n", res);
@@ -109,6 +112,7 @@ int main(int argc, const char *argw[]) {
                         handle_mod, handle_eval, handle_diff, handle_cmps};
     char *line = NULL;
     size_t line_len = 0;
+    bool comment = false;
     while (true) {
         int n = getline(&line, &line_len, f);
         if (n <= 0)
@@ -117,6 +121,22 @@ int main(int argc, const char *argw[]) {
         line[n] = 0;
 
         const char *s = line;
+        if (comment) {
+            s = strchr(s, ']');
+            if (s == NULL)
+                continue;
+            comment = false;
+            s++;
+        }
+        while (isspace(*s))
+            s++;
+        if (*s == 0 || *s == '%')
+            continue;
+        if (*s == '[') {
+            comment = true;
+            continue;
+        }
+
         char *op, *a, *b;
         if (parse_field_str(&op, &s, is_open_bracket) ||
             parse_field_str(&a, &s, is_comma_or_bracket) ||
@@ -126,7 +146,7 @@ int main(int argc, const char *argw[]) {
         }
 
         if (*s != ';' && *b != ';') {
-            fprintf(stderr, "ERROR: line must end in ;");
+            fprintf(stderr, "ERROR: line must end in ;\n");
             FREE_ALL();
             return 1;
         }
@@ -144,7 +164,6 @@ int main(int argc, const char *argw[]) {
                 return 1;
             }
         }
-        poly_free(buf);
 
         handle *h = NULL;
         for (size_t i = 0; i < sizeof(ops) / sizeof(ops[0]); i++) {
@@ -165,7 +184,15 @@ int main(int argc, const char *argw[]) {
             }
             fprintf(stderr, "}\n");
         }
+        if (strchr(s, '[') != NULL) {
+            comment = true;
+        }
 
+        // printf("[%s] [", op);
+        // poly_print(x);
+        // printf("] [");
+        // poly_print(y);
+        // printf("] [%s]\n", s);
         free(op);
         free(a);
         free(b);
