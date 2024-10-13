@@ -4,14 +4,6 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#define check(MACRO, AFTER)                                                    \
-    {                                                                          \
-        int _r = MACRO;                                                        \
-        if (_r) {                                                              \
-            AFTER;                                                             \
-            return _r;                                                         \
-        }                                                                      \
-    }
 
 typedef enum Status {
     S_OK,
