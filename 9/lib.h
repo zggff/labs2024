@@ -8,6 +8,8 @@ typedef enum Status {
     S_OK,
     S_MALLOC_ERROR,
     S_PARSE_ERROR,
+    S_INVALID_INPUT,
+    S_FILE_READ_ERROR
 } Status;
 
 typedef int (*mask)(int);
@@ -34,5 +36,10 @@ int tree_free(Tree *t);
 int tree_print(const Tree *t);
 int tree_size(const Tree *t);
 int tree_dump_to_sorted_list(Leaf **r, const Tree *t);
+int tree_longest(char **r, const Tree *t);
+int tree_shortest(char **r, const Tree *t);
+int tree_depth(const Tree *t);
+int tree_write(FILE *f, const Tree *t);
+int tree_read(FILE *f, Tree *t);
 
 #endif

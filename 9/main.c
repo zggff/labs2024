@@ -5,6 +5,83 @@
 
 #include "lib.h"
 
+typedef int (*handle)(Tree *t, const char *s);
+
+int handle_get(Tree *t, const char *s) {
+    char *word;
+    parse_field_str(&word, &s, isspace);
+    int r = tree_get(t, word);
+    free(word);
+    printf("%s is found %d times\n", word, r);
+    return S_OK;
+}
+
+int handle_first(Tree *t, const char *s) {
+    size_t n;
+    parse_field_uint(&n, &s, isspace);
+    Leaf *ls;
+    int act = tree_dump_to_sorted_list(&ls, t);
+    printf("%d\n", act);
+    if (act < (int)n)
+        n = act;
+    printf("%zu most common words:\n", n);
+    for (size_t i = 0; i < n; i++) {
+        Leaf l = ls[i];
+        printf("[%s]: %zu\n", l.s, l.cnt);
+    }
+    free(ls);
+    return S_OK;
+}
+
+int handle_longest(Tree *t, const char *s) {
+    (void)s;
+    char *str = "";
+    tree_longest(&str, t);
+    printf("longest word: [%s]\n", str);
+    return S_OK;
+}
+
+int handle_shortest(Tree *t, const char *s) {
+    (void)s;
+    char *str = "";
+    tree_shortest(&str, t);
+    printf("shortest word: [%s]\n", str);
+    return S_OK;
+}
+int handle_depth(Tree *t, const char *s) {
+    (void)s;
+    int depth = tree_depth(t);
+    printf("tree depth: %d\n", depth);
+    return S_OK;
+}
+
+int handle_write(Tree *t, const char *s) {
+    char *fname;
+    parse_field_str(&fname, &s, isspace);
+    FILE *f = fopen(fname, "w");
+    if (!f) {
+        fprintf(stderr, "ERROR: failed to open file [%s]\n", fname);
+        free(fname);
+        return 1;
+    }
+    free(fname);
+    return tree_write(f, t);
+}
+
+int handle_read(Tree *t, const char *s) {
+    char *fname;
+    parse_field_str(&fname, &s, isspace);
+    FILE *f = fopen(fname, "r");
+    if (!f) {
+        fprintf(stderr, "ERROR: failed to open file [%s]\n", fname);
+        free(fname);
+        return 1;
+    }
+    free(fname);
+    tree_free(t);
+    return tree_read(f, t);
+}
+
 int main(int argc, const char *argw[]) {
     if (argc < 2) {
         fprintf(stderr, "ERROR: input file not provided\n");
@@ -60,12 +137,17 @@ int main(int argc, const char *argw[]) {
     fclose(f);
     free(sep);
 
-    tree_print(&t);
+    const char *ops[] = {"Get",   "First", "Longest", "Shortest",
+                         "Depth", "Write", "Read"};
+    handle handles[] = {handle_get,      handle_first, handle_longest,
+                        handle_shortest, handle_depth, handle_write,
+                        handle_read};
+
     char *line = NULL;
     size_t line_len = 0;
     while (true) {
         int n = getline(&line, &line_len, stdin);
-        if (n <= 0)
+        if (n <= 1)
             break;
         n--;
         line[n] = 0;
@@ -73,8 +155,24 @@ int main(int argc, const char *argw[]) {
         const char *s = line;
         char *op;
         parse_field_str(&op, &s, isspace);
-        printf("[%s]\n", op);
+        handle *h = NULL;
+        for (size_t i = 0; i < sizeof(ops) / sizeof(ops[0]) && !h; i++)
+            if (strcmp(op, ops[i]) == 0)
+                h = &handles[i];
+
+        if (!h) {
+            fprintf(stderr, "ERROR: unknown operation [%s]\n", line);
+            fprintf(stderr, "supported operations: {");
+            for (size_t i = 0; i < sizeof(ops) / sizeof(ops[0]); i++) {
+                fprintf(stderr, "%s, ", ops[i]);
+            }
+            fprintf(stderr, "}\n");
+        } else {
+            (*h)(&t, s);
+        }
+        free(op);
     }
+    free(line);
 
     tree_free(&t);
     return s;

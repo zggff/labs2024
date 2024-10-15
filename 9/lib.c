@@ -69,20 +69,20 @@ int parse_field_uint(unsigned long *res, char const **start, mask m) {
     return S_OK;
 }
 
-int _tree_inc_(Tree *t, const char *word) {
+int _tree_inc_(Tree *t, const char *word, size_t i) {
     if (!t->v.s) {
         t->v.s = malloc(strlen(word) + 1);
         if (!t->v.s)
             return S_MALLOC_ERROR;
         strcpy(t->v.s, word);
     }
-    t->v.cnt++;
+    t->v.cnt += i;
     return S_OK;
 }
 
-int tree_add(Tree *t, const char *word) {
+int _tree_add(Tree *t, const char *word, size_t i) {
     if (t->v.s == NULL)
-        return _tree_inc_(t, word);
+        return _tree_inc_(t, word, i);
 
     int cmp;
     Tree **c = &t;
@@ -101,12 +101,16 @@ int tree_add(Tree *t, const char *word) {
         memset(*c, 0, sizeof(Tree));
     }
 
-    return _tree_inc_(*c, word);
+    return _tree_inc_(*c, word, i);
+}
+
+int tree_add(Tree *t, const char *word) {
+    return _tree_add(t, word, 1);
 }
 
 int tree_get(const Tree *t, const char *word) {
     if (t->v.s == NULL)
-        return -1;
+        return 0;
     int cmp;
     do {
         cmp = strcmp(word, t->v.s);
@@ -116,7 +120,7 @@ int tree_get(const Tree *t, const char *word) {
             t = t->r;
     } while (cmp && t);
     if (!t)
-        return -1;
+        return 0;
     return t->v.cnt;
 }
 
@@ -136,14 +140,28 @@ int tree_print(const Tree *t) {
     return _tree_print(t, 0);
 }
 
-int tree_free(Tree *t) { // can't implement non recursively
-    if (!t)
+int _tree_free(Tree *t) { // can't implement non recursively
+    if (!t || !t->v.s)
         return 0;
-    tree_free(t->l);
-    tree_free(t->r);
-    free(t->l);
-    free(t->r);
-    free(t->v.s);
+    _tree_free(t->l);
+    _tree_free(t->r);
+    if (t->l)
+        free(t->l);
+    if (t->r)
+        free(t->r);
+    if (t->v.s)
+        free(t->v.s);
+    return 0;
+}
+
+int tree_free(Tree *t) {
+    if (!t || !t->v.s)
+        return 0;
+    _tree_free(t);
+    t->r = NULL;
+    t->l = NULL;
+    t->v.s = NULL;
+    t->v.cnt = 0;
     return 0;
 }
 
@@ -165,31 +183,113 @@ int tree_parse_file(Tree *t, const char *sep, FILE *f) {
 }
 
 int tree_size(const Tree *t) {
-    if (!t)
+    if (!t || !t->v.s)
         return 0;
-    return tree_size(t->l) + tree_size(t->r);
+    return tree_size(t->l) + tree_size(t->r) + 1;
 }
 
-int _push_to_list(Leaf *r, const Tree *t) {
+int _push_to_list(Leaf *r, const Tree *t, size_t *i) {
     if (!t)
         return 0;
-    _push_to_list(r, t->l);
-    _push_to_list(r, t->r);
+    r[*i] = t->v;
+    (*i)++;
+    _push_to_list(r, t->l, i);
+    _push_to_list(r, t->r, i);
     return 0;
 }
 
 int leaf_cmp(const void *p_a, const void *p_b) {
     const Leaf *a = p_a;
     const Leaf *b = p_b;
-    return (a->cnt > b->cnt) - (a->cnt < b->cnt);
+    return a->cnt > b->cnt ? -1 : a->cnt != b->cnt;
 }
 
 int tree_dump_to_sorted_list(Leaf **r, const Tree *t) {
+    if (!t || !t->v.s)
+        return 0;
     int n = tree_size(t);
     *r = malloc(n * sizeof(Leaf));
-    if (!*r)
+    if (*r == NULL)
         return -1;
-    _push_to_list(*r, t);
+    size_t i = 0;
+    _push_to_list(*r, t, &i);
     qsort(*r, n, sizeof(Leaf), leaf_cmp);
+    return i;
+}
+
+int tree_depth(const Tree *t) {
+    if (!t || !t->v.s)
+        return 0;
+    int left = tree_depth(t->l);
+    int right = tree_depth(t->r);
+    return left > right ? left + 1 : right + 1;
+}
+
+int _tree_write(FILE *f, const Tree *t) {
+    if (!t || !t->v.s)
+        return 0;
+    fwrite(&t->v.cnt, sizeof(size_t), 1, f);
+    size_t len = strlen(t->v.s);
+    fwrite(&len, sizeof(size_t), 1, f);
+    fwrite(t->v.s, len, 1, f);
+    _tree_write(f, t->l);
+    _tree_write(f, t->r);
     return 0;
+}
+
+int tree_write(FILE *f, const Tree *t) {
+    if (!t)
+        return 0;
+    size_t n = tree_size(t);
+    fwrite(&n, sizeof(size_t), 1, f);
+    return _tree_write(f, t);
+}
+
+int tree_read(FILE *f, Tree *t) {
+    size_t n = 0;
+    if (!fread(&n, sizeof(size_t), 1, f))
+        return S_FILE_READ_ERROR;
+    for (size_t i = 0; i < n; i++) {
+        size_t cnt, len;
+        if (!fread(&cnt, sizeof(size_t), 1, f) ||
+            !fread(&len, sizeof(size_t), 1, f))
+            return S_FILE_READ_ERROR;
+
+        char *s = malloc(len + 1);
+        if (!s)
+            return S_MALLOC_ERROR;
+
+        if (fread(s, 1, len, f) != len)
+            return S_FILE_READ_ERROR;
+
+        s[len] = 0;
+        int r = _tree_add(t, s, cnt);
+        free(s);
+        if (r)
+            return r;
+    }
+    return S_OK;
+}
+
+int _tree_longest(char **r, const Tree *t, bool shortest) {
+    if (!t)
+        return 0;
+    if ((strlen(t->v.s) > strlen(*r)) ^ shortest)
+        *r = t->v.s;
+    _tree_longest(r, t->l, shortest);
+    _tree_longest(r, t->r, shortest);
+    return S_OK;
+}
+int tree_longest(char **r, const Tree *t) {
+    if (!t || !t->v.s)
+        return S_INVALID_INPUT;
+    *r = t->v.s;
+    return _tree_longest(r, t, false);
+}
+
+int tree_shortest(char **r, const Tree *t) {
+    if (!t || !t->v.s)
+        return S_INVALID_INPUT;
+    *r = t->v.s;
+    return _tree_longest(r, t, true);
 }
