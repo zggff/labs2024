@@ -10,12 +10,19 @@ typedef enum Status {
     S_PARSE_ERROR,
 } Status;
 
+typedef int (*mask)(int);
 size_t getword(char **res, size_t *cap, FILE *f, const char *sep);
+int parse_field_str(char **res, char const **start, mask m);
+int parse_field_uint(unsigned long *res, char const **start, mask m);
+
+typedef struct Leaf {
+    char *s;
+    size_t cnt;
+} Leaf;
 
 typedef struct Tree Tree;
 struct Tree {
-    char *s;
-    size_t cnt;
+    Leaf v;
     Tree *l;
     Tree *r;
 };
@@ -25,5 +32,7 @@ int tree_add(Tree *t, const char *word);
 int tree_get(const Tree *t, const char *word);
 int tree_free(Tree *t);
 int tree_print(const Tree *t);
+int tree_size(const Tree *t);
+int tree_dump_to_sorted_list(Leaf **r, const Tree *t);
 
 #endif

@@ -59,7 +59,23 @@ int main(int argc, const char *argw[]) {
     Status s = tree_parse_file(&t, sep, f);
     fclose(f);
     free(sep);
+
     tree_print(&t);
+    char *line = NULL;
+    size_t line_len = 0;
+    while (true) {
+        int n = getline(&line, &line_len, stdin);
+        if (n <= 0)
+            break;
+        n--;
+        line[n] = 0;
+
+        const char *s = line;
+        char *op;
+        parse_field_str(&op, &s, isspace);
+        printf("[%s]\n", op);
+    }
+
     tree_free(&t);
     return s;
 }

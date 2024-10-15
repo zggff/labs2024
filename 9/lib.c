@@ -36,25 +36,58 @@ size_t getword(char **res, size_t *cap, FILE *f, const char *sep) {
     return i;
 }
 
-int _tree_inc_(Tree *t, const char *word) {
-    if (!t->s) {
-        t->s = malloc(strlen(word) + 1);
-        if (!t->s)
-            return S_MALLOC_ERROR;
-        strcpy(t->s, word);
+int parse_field_str(char **res, char const **start, mask m) {
+    const char *end = *start;
+    while (*end && !m(*end)) {
+        end++;
     }
-    t->cnt++;
+    int n = end - *start;
+    *res = malloc(n + 1);
+    if (!res)
+        return S_MALLOC_ERROR;
+    memcpy(*res, *start, n);
+    (*res)[n] = 0;
+    *start = end + 1;
+    return S_OK;
+}
+
+int parse_field_uint(unsigned long *res, char const **start, mask m) {
+    char *ptr;
+    *res = strtoul(*start, &ptr, 10);
+    bool valid = *ptr == 0;
+    valid = valid | m(*ptr);
+    if (!valid) {
+        ptr++;
+        char tmp = *ptr;
+        *ptr = 0;
+        fprintf(stderr, "ERROR: failed to parse [%s] as unsigned\n", *start);
+        *ptr = tmp;
+        return S_PARSE_ERROR;
+    }
+
+    *start = ptr + 1;
+    return S_OK;
+}
+
+int _tree_inc_(Tree *t, const char *word) {
+    if (!t->v.s) {
+        t->v.s = malloc(strlen(word) + 1);
+        if (!t->v.s)
+            return S_MALLOC_ERROR;
+        strcpy(t->v.s, word);
+    }
+    t->v.cnt++;
     return S_OK;
 }
 
 int tree_add(Tree *t, const char *word) {
-    if (t->s == NULL)
+    if (t->v.s == NULL)
         return _tree_inc_(t, word);
 
     int cmp;
     Tree **c = &t;
     do {
-        cmp = strcmp(word, (*c)->s);
+        cmp = strcmp(word, (*c)->v.s);
         if (cmp < 0)
             c = &(*c)->l;
         if (cmp > 0)
@@ -72,11 +105,11 @@ int tree_add(Tree *t, const char *word) {
 }
 
 int tree_get(const Tree *t, const char *word) {
-    if (t->s == NULL)
+    if (t->v.s == NULL)
         return -1;
     int cmp;
     do {
-        cmp = strcmp(word, t->s);
+        cmp = strcmp(word, t->v.s);
         if (cmp < 0)
             t = t->l;
         if (cmp > 0)
@@ -84,7 +117,7 @@ int tree_get(const Tree *t, const char *word) {
     } while (cmp && t);
     if (!t)
         return -1;
-    return t->cnt;
+    return t->v.cnt;
 }
 
 int _tree_print(const Tree *t, int level) { // can't implement non recursively
@@ -94,7 +127,7 @@ int _tree_print(const Tree *t, int level) { // can't implement non recursively
     for (int i = 0; i < level; i++) {
         printf("  ");
     }
-    printf("[%s]: %zu\n", t->s, t->cnt);
+    printf("[%s]: %zu\n", t->v.s, t->v.cnt);
     _tree_print(t->r, level + 1);
     return 0;
 }
@@ -110,7 +143,7 @@ int tree_free(Tree *t) { // can't implement non recursively
     tree_free(t->r);
     free(t->l);
     free(t->r);
-    free(t->s);
+    free(t->v.s);
     return 0;
 }
 
@@ -129,4 +162,34 @@ int tree_parse_file(Tree *t, const char *sep, FILE *f) {
     }
     free(word);
     return s;
+}
+
+int tree_size(const Tree *t) {
+    if (!t)
+        return 0;
+    return tree_size(t->l) + tree_size(t->r);
+}
+
+int _push_to_list(Leaf *r, const Tree *t) {
+    if (!t)
+        return 0;
+    _push_to_list(r, t->l);
+    _push_to_list(r, t->r);
+    return 0;
+}
+
+int leaf_cmp(const void *p_a, const void *p_b) {
+    const Leaf *a = p_a;
+    const Leaf *b = p_b;
+    return (a->cnt > b->cnt) - (a->cnt < b->cnt);
+}
+
+int tree_dump_to_sorted_list(Leaf **r, const Tree *t) {
+    int n = tree_size(t);
+    *r = malloc(n * sizeof(Leaf));
+    if (!*r)
+        return -1;
+    _push_to_list(*r, t);
+    qsort(*r, n, sizeof(Leaf), leaf_cmp);
+    return 0;
 }
