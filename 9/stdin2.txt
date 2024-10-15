@@ -1,0 +1,7 @@
+Read out.bin
+First 10
+Get sunt
+Get natus
+Longest
+Shortest
+Depth
