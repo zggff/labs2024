@@ -21,7 +21,6 @@ int handle_first(Tree *t, const char *s) {
     parse_field_uint(&n, &s, isspace);
     Leaf *ls;
     int act = tree_dump_to_sorted_list(&ls, t);
-    printf("%d\n", act);
     if (act < (int)n)
         n = act;
     printf("%zu most common words:\n", n);
