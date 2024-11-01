@@ -11,8 +11,8 @@ int handle_get(Tree *t, const char *s) {
     char *word;
     parse_field_str(&word, &s, isspace);
     int r = tree_get(t, word);
-    free(word);
     printf("%s is found %d times\n", word, r);
+    free(word);
     return S_OK;
 }
 
