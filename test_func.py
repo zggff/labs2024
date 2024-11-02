@@ -11,6 +11,12 @@ import sys
 from typing import List, Optional
 
 cnt = 0
+test_leaks = True
+
+def set_test_leaks(val: bool) -> None:
+    global test_leaks
+    test_leaks = val
+
 
 def test(
     test_name: str,
@@ -54,19 +60,21 @@ def test(
             print(f"FAILURE: wrong file output")
             return cmp_string(s, ofile_val)
 
-    test_leaks = ["leaks", "--atExit", "--list", "--"]
-    prog = test_leaks + prog
-    p = subprocess.run(
-        prog,
-        text=True,
-        input=inp,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-    )
-    if p.returncode != 0:
-        print(f"FAILURE: memory leaks")
-        print(f"\n[{p.stdout}\n]")
-        return False
+    global test_leaks
+    if test_leaks:
+        test_leaks = ["leaks", "--atExit", "--list", "--"]
+        prog = test_leaks + prog
+        p = subprocess.run(
+            prog,
+            text=True,
+            input=inp,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+        if p.returncode != 0:
+            print(f"FAILURE: memory leaks")
+            print(f"\n[{p.stdout}\n]")
+            return False
 
     print(f"SUCCESS")
     return True
