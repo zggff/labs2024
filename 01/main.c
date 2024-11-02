@@ -59,9 +59,9 @@ typedef struct HashTable {
     HashList *vals;
 } HashTable;
 
-int hash_init(HashTable *t) {
-    t->size = HASHSIZE;
-    t->vals = malloc(HASHSIZE * sizeof(HashList));
+int hash_init(HashTable *t, size_t size) {
+    t->size = size;
+    t->vals = malloc(t->size * sizeof(HashList));
     if (!t->vals)
         return 1;
     for (size_t i = 0; i < t->size; i++) {
@@ -86,8 +86,36 @@ int hash_free(HashTable *t) {
     return 0;
 }
 
+int _hash_set(HashTable *t, HashElem e);
+
 int _hash_rehash(HashTable *t) {
-    (void)t;
+    size_t min = SIZE_MAX;
+    size_t max = 0;
+    for (size_t i = 0; i < t->size; i++) {
+        if (t->vals[i].size < min)
+            min = t->vals[i].size;
+        if (t->vals[i].size > max)
+            max = t->vals[i].size;
+    }
+    if (min == 0 || max < 2 * min)
+        return 0;
+
+    HashTable u = {0};
+    if (hash_init(&u, t->size + HASHSIZE))
+        return 0;
+
+    for (size_t i = 0; i < t->size; i++) {
+        for (size_t j = 0; j < t->vals[i].size; j++) {
+            if (_hash_set(&u, t->vals[i].vals[j]))
+                return 0;
+        }
+    }
+
+    for (size_t i = 0; i < t->size; i++) 
+        free(t->vals[i].vals);
+    free(t->vals);
+    
+    *t = u;
     return 0;
 }
 
@@ -99,7 +127,7 @@ int _hash_set(HashTable *t, HashElem e) {
             return 0;
         }
     }
-    return _hash_list_push(l, e) && _hash_rehash(t);
+    return _hash_list_push(l, e) || _hash_rehash(t);
 }
 
 int hash_set(HashTable *t, const char *k, const char *v) {
@@ -164,7 +192,7 @@ int main(int argc, char *argw[]) {
     }
 
     HashTable t = {0};
-    hash_init(&t);
+    hash_init(&t, HASHSIZE);
 
     size_t line_len = 0;
     char *line = NULL;
