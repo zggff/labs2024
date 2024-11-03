@@ -60,6 +60,18 @@ typedef int (*handle)(Arr *vars, const char **s);
 
 typedef enum Status { S_OK, S_MALLOC, S_PARSE } Status;
 
+int check_overflow(size_t r, Arr *a) {
+    if (r >= a->size) {
+        fflush(stdout);
+        fprintf(stderr,
+                "ERROR: array overflow: attempted to access index [%zu] of an "
+                "array with lenth [%zu]\n",
+                r, a->size);
+        fflush(stderr);
+    }
+    return r >= a->size;
+}
+
 int handle_load(Arr *vars, const char **s) {
     (void)vars;
     (void)s;
@@ -80,7 +92,7 @@ int handle_rand(Arr *vars, const char **s) {
         return S_PARSE;
     }
     Arr *a = &vars[index];
-    a->vals = malloc(sizeof(int) * count);
+    a->vals = malloc(sizeof(unsigned) * count);
     if (!a->vals)
         return S_MALLOC;
     a->size = count;
@@ -90,8 +102,21 @@ int handle_rand(Arr *vars, const char **s) {
     return S_OK;
 }
 int handle_concat(Arr *vars, const char **s) {
-    (void)vars;
-    (void)s;
+    int i_a, i_b;
+    if ((i_a = parse_index(s)) < 0 || *(*s - 1) != ',' || // first
+        (i_b = parse_index(s)) < 0 || *(*s - 1) != ';') {
+        return S_PARSE; // second
+    }
+    Arr *a = &vars[i_a];
+    Arr *b = &vars[i_b];
+    size_t new_size = a->size + b->size;
+    unsigned *vals = realloc(a->vals, sizeof(unsigned) * new_size);
+    if (!vals)
+        return S_MALLOC;
+    a->vals = vals;
+    for (size_t i = 0; i < b->size; i++)
+        a->vals[a->size + i] = b->vals[i];
+    a->size = new_size;
     return 0;
 }
 int handle_free(Arr *vars, const char **s) {
@@ -106,13 +131,42 @@ int handle_free(Arr *vars, const char **s) {
     return S_OK;
 }
 int handle_remove(Arr *vars, const char **s) {
-    (void)vars;
-    (void)s;
-    return 0;
+    int i_a, lb, n;
+    if ((i_a = parse_index(s)) < 0 || *(*s - 1) != ',' || // first
+        (lb = parse_uint(s)) < 0 || *(*s - 1) != ',' ||   // second
+        (n = parse_uint(s)) < 0 || *(*s - 1) != ';') {
+        return S_PARSE;
+    }
+    Arr *a = &vars[i_a];
+    if (check_overflow(lb + n, a))
+        return S_OK;
+    for (int i = lb; i < lb + n; i++)
+        a->vals[i] = a->vals[i + n];
+    a->size -= n;
+    return S_OK;
 }
 int handle_copy(Arr *vars, const char **s) {
-    (void)vars;
-    (void)s;
+    int i_a, lb, rb, i_b;
+    if ((i_a = parse_index(s)) < 0 || *(*s - 1) != ',' || // first
+        (lb = parse_uint(s)) < 0 || *(*s - 1) != ',' ||   // second
+        (rb = parse_uint(s)) < 0 || *(*s - 1) != ',' ||   // third
+        (i_b = parse_index(s)) < 0 || *(*s - 1) != ';' || // last
+        rb < lb) {
+        return S_PARSE;
+    }
+    Arr *a = &vars[i_a];
+    if (check_overflow(rb, a))
+        return S_OK;
+    Arr *b = &vars[i_b];
+    if (b->size > 0)
+        free(b->vals);
+    b->size = 0;
+    b->size = rb - lb + 1;
+    b->vals = malloc(b->size * sizeof(unsigned));
+    if (!b->vals)
+        return S_MALLOC;
+    for (size_t i = 0; i < b->size; i++)
+        b->vals[i] = a->vals[i + lb];
     return 0;
 }
 int handle_sort(Arr *vars, const char **s) {
@@ -126,8 +180,9 @@ int handle_shuffle(Arr *vars, const char **s) {
     return 0;
 }
 int handle_stats(Arr *vars, const char **s) {
-    (void)vars;
-    (void)s;
+    int index = parse_index(s);
+    if (index < 0 || *(*s - 1) != ';')
+        return S_PARSE;
     return 0;
 }
 int handle_print(Arr *vars, const char **s) {
@@ -146,29 +201,33 @@ int handle_print(Arr *vars, const char **s) {
     free(arg2_str);
 
     Arr *a = &vars[index];
-    int l, r;
-    if (arg_2 < 0) { // print a, all;
-        l = 0;
-        r = a->size - 1;
-    } else if (*(*s - 1) == ';') { // print a, n;
-        l = 0;
-        r = arg_2;
-    } else {
-        l = arg_2;
-        r = parse_uint(s);
-        if (r < 0 || *(*s - 1) != ';')
-            return S_PARSE;
-    }
-    if (r >= (int)a->size) {
-        fflush(stdout);
-        fprintf(stderr,
-                "ERROR: array overflow: attempted to access index [%d] of an "
-                "array with lenth [%zu]\n",
-                r, a->size);
-        fflush(stderr);
+    if (arg_2 >= 0 && *(*s - 1) == ';') { // print a, n;
+        if (check_overflow(arg_2, a))
+            return S_OK;
+        printf("%c[%d] = %d\n", index + 'A', arg_2, a->vals[arg_2]);
         return S_OK;
     }
-    printf("%c = [", index + 'A');
+
+    int l, r;
+    if (arg_2 < 0) { // print a, all;
+        printf("%c = [", index + 'A');
+        for (size_t i = 0; i < a->size; i++) {
+            if (i > 0)
+                printf(", ");
+            printf("%d", a->vals[i]);
+        }
+        printf("]\n");
+        return S_OK;
+    }
+
+    l = arg_2;
+    r = parse_uint(s);
+    if (r < 0 || *(*s - 1) != ';')
+        return S_PARSE;
+
+    if (check_overflow(r, a))
+        return S_OK;
+    printf("%c[%d..%d] = [", index + 'A', l, r);
     for (int i = l; i <= r; i++) {
         if (i > l)
             printf(", ");
