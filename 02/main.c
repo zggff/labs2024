@@ -448,10 +448,12 @@ int main(void) {
     Arr arrays[ARRAY_CNT] = {0};
     while (true) {
         int n = getline(&line, &line_len, stdin);
-        if (n <= 1)
+        if (n <= 0)
             break;
-        n--;
-        line[n] = 0;
+        if (line[n - 1] == '\n') {
+            n--;
+            line[n] = 0;
+        }
         const char *s = line;
         char *op = parse_str(&s);
         if (*op == 0)
@@ -463,8 +465,22 @@ int main(void) {
                 break;
             }
         }
+
+        if (hand == NULL) {
+            fprintf(stderr, "ERROR: unknown operation [%s]\n", op);
+            fprintf(stderr, "supported operations: {");
+            for (size_t i = 0; i < sizeof(ops) / sizeof(ops[0]); i++) {
+                fprintf(stderr, "%s, ", ops[i]);
+            }
+            fprintf(stderr, "}\n");
+            fflush(stderr);
+            free(op);
+            continue;
+        }
+
         bool is_free = strcmp("free", op) == 0;
         free(op);
+
         if (is_free && *(s - 1) != '(') {
             fprintf(stderr, "ERROR: braces are expected as separator with "
                             "free command\n");
@@ -474,17 +490,6 @@ int main(void) {
 
         if (!is_free && !isspace(*(s - 1))) {
             fprintf(stderr, "ERROR: commands must be followed by whitespace\n");
-            fflush(stderr);
-            continue;
-        }
-
-        if (hand == NULL) {
-            fprintf(stderr, "ERROR: unknown operation [%s]\n", line);
-            fprintf(stderr, "supported operations: {");
-            for (size_t i = 0; i < sizeof(ops) / sizeof(ops[0]); i++) {
-                fprintf(stderr, "%s, ", ops[i]);
-            }
-            fprintf(stderr, "}\n");
             fflush(stderr);
             continue;
         }
