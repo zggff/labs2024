@@ -169,20 +169,59 @@ int handle_copy(Arr *vars, const char **s) {
         b->vals[i] = a->vals[i + lb];
     return 0;
 }
+
+int cmp_inc(const void *a0, const void *b0) {
+    unsigned a = *(unsigned *)a0;
+    unsigned b = *(unsigned *)b0;
+    return (a < b) ? -1 : a > b;
+}
+
+int cmp_dec(const void *a0, const void *b0) {
+    return -cmp_inc(a0, b0);
+}
+int cmp_random(const void *a0, const void *b0) {
+    (void)a0;
+    (void)b0;
+    return (rand() % 3) - 1;
+}
+
 int handle_sort(Arr *vars, const char **s) {
-    (void)vars;
-    (void)s;
+    while (isspace(**s))
+        (*s)++;
+    char c = tolower(**s);
+    if (c < 'a' || 'z' < c)
+        return S_PARSE;
+    Arr *a = &vars[c - 'a'];
+    (*s)++;
+    if (**s != '+' && **s != '-')
+        return S_PARSE;
+    bool increase = **s == '+';
+    (*s)++;
+    if (**s != ';')
+        return S_PARSE;
+    if (increase) {
+        qsort(a->vals, a->size, sizeof(unsigned), cmp_inc);
+    } else {
+        qsort(a->vals, a->size, sizeof(unsigned), cmp_dec);
+    }
+
     return 0;
 }
 int handle_shuffle(Arr *vars, const char **s) {
-    (void)vars;
-    (void)s;
+    int index = parse_index(s);
+    if (index < 0 || *(*s - 1) != ';')
+        return S_PARSE;
+    Arr *a = &vars[index];
+    qsort(a->vals, a->size, sizeof(unsigned), cmp_random);
     return 0;
 }
 int handle_stats(Arr *vars, const char **s) {
     int index = parse_index(s);
     if (index < 0 || *(*s - 1) != ';')
         return S_PARSE;
+    Arr *a = &vars[index];
+    printf("%c:\n", index + 'A');
+    printf("\tlen=%zu\n", a->size);
     return 0;
 }
 int handle_print(Arr *vars, const char **s) {
