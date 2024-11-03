@@ -13,9 +13,30 @@ from typing import List, Optional
 cnt = 0
 test_leaks = True
 
+
 def set_test_leaks(val: bool) -> None:
     global test_leaks
     test_leaks = val
+
+
+def run_process(
+    args: List[str], inp: str, prog_name: str = "./main.out", test_leaks: bool = False
+) -> tuple[int, str]:
+    prog = [prog_name] + args
+    if test_leaks:
+        prog = ["leaks", "--atExit", "--list", "--"] + prog
+    try:
+        p = subprocess.run(
+            prog,
+            text=True,
+            input=inp,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            encoding=sys.stdout.encoding,
+        )
+        return (p.returncode, p.stdout)
+    except UnicodeDecodeError:
+        return (-1, "error: non unicode output")
 
 
 def test(
