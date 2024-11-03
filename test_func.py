@@ -43,8 +43,8 @@ def test(
     test_name: str,
     args: List[str],
     status: int,
-    inp: str,
-    out: str,
+    inp: str | List[str],
+    out: str | List[str],
     ofile: Optional[str] = None,
     ofile_val: Optional[str] = None,
     prog_name="./main.out",
@@ -54,6 +54,11 @@ def test(
     print(f"TEST {cnt:02}: {test_name}", end="\n\t")
     prog = [prog_name] + args
     p = None
+    if isinstance(inp, list):
+        inp = "\n".join(inp)
+    if isinstance(out, list):
+        out = "\n".join(out)
+
     try:
         p = subprocess.run(
             prog,
