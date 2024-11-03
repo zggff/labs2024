@@ -82,6 +82,7 @@ assert test(
     "1 22 14 1 24 12 41 1 22 14 1 24 12 41 ",
 )
 
+
 assert test(
     "check correct working of the program",
     [],
@@ -121,4 +122,24 @@ assert test(
     ],
     "./nums_out.txt",
     "4512 99 99 99 51 51 51 21 14 14 14 12 1 0 0 ",
+)
+
+assert test(
+    "check file input non existing file",
+    ["./non_existing.txt"],
+    1,
+    "",
+    "ERROR: failed to open file: [./non_existing.txt]",
+)
+
+assert test(
+    "check file input",
+    ["./example_input2.txt"],
+    0,
+    "",
+    [
+        "A = [21, 214, 1, 4512, 51, 14, 99, 0, 12, 41, 45, 41]",
+        "A[5] = 14",
+        "A[2..4] = [1, 4512, 51]",
+    ],
 )

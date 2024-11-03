@@ -434,7 +434,16 @@ int handle_print(Arr *vars, const char **s) {
     return S_OK;
 }
 
-int main(void) {
+int main(int argc, const char *argw[]) {
+    FILE *f = stdin;
+    if (argc > 1) {
+        f = fopen(argw[1], "r");
+        if (!f) {
+            fprintf(stderr, "ERROR: failed to open file: [%s]\n", argw[1]);
+            fflush(stderr);
+            return 1;
+        }
+    }
     srand((unsigned int)time(NULL));
     size_t line_len = 0;
     char *line = NULL;
@@ -447,7 +456,7 @@ int main(void) {
 
     Arr arrays[ARRAY_CNT] = {0};
     while (true) {
-        int n = getline(&line, &line_len, stdin);
+        int n = getline(&line, &line_len, f);
         if (n <= 0)
             break;
         if (line[n - 1] == '\n') {
@@ -510,5 +519,7 @@ int main(void) {
             free(arrays[i].vals);
     }
     free(line);
+    if (argc > 1)
+        fclose(f);
     return 0;
 }
