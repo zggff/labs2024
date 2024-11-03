@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -72,14 +73,110 @@ int check_overflow(size_t r, Arr *a) {
     return r >= a->size;
 }
 
+long parse_uint_from_file(const char **s) {
+    while (**s && isspace(**s))
+        (*s)++;
+    if (**s == 0)
+        return -1;
+    char *ptr;
+    size_t r = strtoul(*s, &ptr, 10);
+    if (*ptr && !isspace(*ptr)) {
+        *(ptr + 1) = 0;
+        fprintf(stderr, "ERROR: failed to parse [%s] as number\n", *s);
+        fflush(stderr);
+        return -2;
+    }
+    *s = ptr + 1;
+    return r;
+}
+
 int handle_load(Arr *vars, const char **s) {
-    (void)vars;
-    (void)s;
-    return 0;
+    int index;
+    char *path;
+    if ((index = parse_index(s)) < 0 || *(*s - 1) != ',' ||  // first
+        (path = parse_str(s)) == NULL || *(*s - 1) != ';' || // second
+        (path != NULL && *path == 0)) {
+        return S_PARSE;
+    }
+    FILE *f = fopen(path, "r");
+    if (!f) {
+        fprintf(stderr, "ERROR: failed to open file: [%s]\n", path);
+        fflush(stderr);
+        return S_OK;
+    }
+    free(path);
+
+    size_t line_len = 0;
+    char *line = NULL;
+
+    size_t cap = 16;
+    size_t size = 0;
+    unsigned *arr = malloc(cap * sizeof(unsigned));
+    if (!arr)
+        return S_MALLOC;
+    while (true) {
+        int n = getline(&line, &line_len, f);
+        if (n <= 1)
+            break;
+        const char *s = line;
+        while (*s && isspace(*s))
+            s++;
+        while (true) {
+            int parsed = parse_uint_from_file(&s);
+            if (parsed == -2) {
+                free(arr);
+                free(line);
+                fclose(f);
+                return S_OK;
+            }
+            if (parsed == -1) {
+                break;
+            }
+            if (size >= cap) {
+                cap *= 2;
+                unsigned *new_arr = realloc(arr, cap * sizeof(unsigned));
+                if (!new_arr) {
+                    free(line);
+                    free(arr);
+                    fclose(f);
+                    return S_MALLOC;
+                }
+                arr = new_arr;
+            }
+            arr[size] = parsed;
+            size++;
+        }
+    }
+    Arr *a = &vars[index];
+    if (a->size > 0)
+        free(a->vals);
+    a->vals = arr;
+    a->size = size;
+
+    free(line);
+    fclose(f);
+    return S_OK;
 }
 int handle_save(Arr *vars, const char **s) {
-    (void)vars;
-    (void)s;
+    int index;
+    char *path;
+    if ((index = parse_index(s)) < 0 || *(*s - 1) != ',' || // first
+        (path = parse_str(s)) == NULL || *(*s - 1) != ';' ||
+        (path != NULL && *path == 0)) // second
+        return S_PARSE;
+    FILE *f = fopen(path, "w");
+    if (!f) {
+        fprintf(stderr, "ERROR: failed to open file: [%s]\n", path);
+        fflush(stderr);
+        return S_OK;
+    }
+    free(path);
+    Arr *a = &vars[index];
+    for (size_t i = 0; i < a->size; i++) {
+        fprintf(f, "%u ", a->vals[i]);
+    }
+    fflush(f);
+    fclose(f);
     return 0;
 }
 int handle_rand(Arr *vars, const char **s) {
@@ -277,6 +374,7 @@ int handle_stats(Arr *vars, const char **s) {
     float diff_last = arr[a->size - 1] - mean;
     float max_diff = diff_first > diff_last ? diff_first : diff_last;
     printf("\tmax deviation=%f\n", max_diff);
+    fflush(stdout);
     free(arr);
 
     return 0;
@@ -301,6 +399,7 @@ int handle_print(Arr *vars, const char **s) {
         if (check_overflow(arg_2, a))
             return S_OK;
         printf("%c[%d] = %d\n", index + 'A', arg_2, a->vals[arg_2]);
+        fflush(stdout);
         return S_OK;
     }
 
@@ -313,6 +412,7 @@ int handle_print(Arr *vars, const char **s) {
             printf("%d", a->vals[i]);
         }
         printf("]\n");
+        fflush(stdout);
         return S_OK;
     }
 
@@ -330,6 +430,7 @@ int handle_print(Arr *vars, const char **s) {
         printf("%d", a->vals[i]);
     }
     printf("]\n");
+    fflush(stdout);
     return S_OK;
 }
 
@@ -365,7 +466,6 @@ int main(void) {
         bool is_free = strcmp("free", op) == 0;
         free(op);
         if (is_free && *(s - 1) != '(') {
-            fflush(stdout);
             fprintf(stderr, "ERROR: braces are expected as separator with "
                             "free command\n");
             fflush(stderr);
@@ -373,14 +473,12 @@ int main(void) {
         }
 
         if (!is_free && !isspace(*(s - 1))) {
-            fflush(stdout);
             fprintf(stderr, "ERROR: commands must be followed by whitespace\n");
             fflush(stderr);
             continue;
         }
 
         if (hand == NULL) {
-            fflush(stdout);
             fprintf(stderr, "ERROR: unknown operation [%s]\n", line);
             fprintf(stderr, "supported operations: {");
             for (size_t i = 0; i < sizeof(ops) / sizeof(ops[0]); i++) {
@@ -393,19 +491,17 @@ int main(void) {
 
         int r = (*hand)(arrays, &s);
         if (r == S_MALLOC) {
-            fflush(stdout);
             fprintf(stderr, "ERROR: buy more ram\n");
             return 1;
         }
         if (r == S_PARSE) {
-            fflush(stdout);
             fprintf(stderr, "ERROR: failed to parse arguments from line [%s]\n",
                     line);
             fflush(stderr);
         }
     }
     for (size_t i = 0; i < ARRAY_CNT; i++) {
-        if (arrays[i].size > 0) 
+        if (arrays[i].size > 0)
             free(arrays[i].vals);
     }
     free(line);
