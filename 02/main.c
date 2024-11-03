@@ -222,6 +222,63 @@ int handle_stats(Arr *vars, const char **s) {
     Arr *a = &vars[index];
     printf("%c:\n", index + 'A');
     printf("\tlen=%zu\n", a->size);
+    if (a->size == 0)
+        return S_OK;
+
+    unsigned min = -1;
+    unsigned max = 0;
+    unsigned i_min = 0;
+    unsigned i_max = 0;
+    float mean = 0;
+    for (size_t i = 0; i < a->size; i++) {
+        unsigned val = a->vals[i];
+        if (val < min) {
+            i_min = i;
+            min = val;
+        }
+        if (val > max) {
+            i_max = i;
+            max = val;
+        }
+        mean += a->vals[i];
+    }
+    mean /= a->size;
+
+    printf("\tmin=%c[%d]=%u\n", 'A' + index, i_min, min);
+    printf("\tmax=%c[%d]=%u\n", 'A' + index, i_max, max);
+
+    unsigned *arr = malloc(a->size * sizeof(unsigned));
+    if (!arr)
+        return S_MALLOC;
+    memcpy(arr, a->vals, a->size * sizeof(unsigned));
+    qsort(arr, a->size, sizeof(unsigned), cmp_inc);
+
+    unsigned len = 1;
+    unsigned most_common_cnt = 1;
+    unsigned most_common = arr[0];
+    for (size_t i = 1; i < a->size; i++) {
+        if (arr[i] == arr[i - 1]) {
+            len++;
+        } else {
+            if (len >= most_common_cnt) {
+                most_common_cnt = len;
+                most_common = arr[i - 1];
+            }
+            len = 1;
+        }
+    }
+    if (len >= most_common_cnt) {
+        most_common_cnt = len;
+        most_common = arr[a->size - 1];
+    }
+    printf("\tmost common=%u\n", most_common);
+    printf("\tmean=%f\n", mean);
+    float diff_first = mean - arr[0];
+    float diff_last = arr[a->size - 1] - mean;
+    float max_diff = diff_first > diff_last ? diff_first : diff_last;
+    printf("\tmax deviation=%f\n", max_diff);
+    free(arr);
+
     return 0;
 }
 int handle_print(Arr *vars, const char **s) {
@@ -346,6 +403,10 @@ int main(void) {
                     line);
             fflush(stderr);
         }
+    }
+    for (size_t i = 0; i < ARRAY_CNT; i++) {
+        if (arrays[i].size > 0) 
+            free(arrays[i].vals);
     }
     free(line);
     return 0;
