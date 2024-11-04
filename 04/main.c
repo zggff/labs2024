@@ -11,19 +11,21 @@
 
 typedef unsigned char vec;
 #define VEC_MAX 255
-
-long _refill_buffer(char buffer[BUF_SIZE], int *buf_off, FILE *f) {
-    if (*buf_off >= BUF_SIZE) {
-        *buf_off = 0;
-        return fread(buffer, 1, BUF_SIZE, f);
-    }
-    return BUF_SIZE - *buf_off;
-}
+#define VEC_LEN 8
 
 char _getc(char buf[BUF_SIZE], int *off, FILE *f) {
-    if (*(buf + *off) == 0 || *off >= BUF_SIZE - 1) {
+    if (*buf == 0) {
+        *off = 0;
+        long c = fread(buf, 1, BUF_SIZE, f);
+        if (c < BUF_SIZE)
+            buf[c] = 0;
+        if (c == 0)
+            return 0;
+    }
+    if (*off >= BUF_SIZE) {
         *off = 1;
-        long c = fread(buf + *off, 1, BUF_SIZE - *off, f);
+        buf[0] = buf[BUF_SIZE - 1];
+        long c = fread(buf + 1, 1, BUF_SIZE - 1, f);
         if (*off + c < BUF_SIZE)
             buf[*off + c] = 0;
         if (c == 0)
@@ -39,8 +41,7 @@ int is_sep(char c) {
 }
 
 int is_token(const char *s) {
-    const char *tokens[] = {":=", "+", "&",  "->", "<-", "~", "<>", "+>",
-                            "?",  "!", "\\", "(",  ")",  ",", ";"};
+    const char *tokens[] = {":=", "(", ")", ",", ";"};
     for (size_t i = 0; i < sizeof(tokens) / sizeof(tokens[0]); i++) {
         if (strncmp(s, tokens[i], strlen(tokens[i])) == 0)
             return 1;
@@ -206,11 +207,8 @@ TryStatus try_write(size_t base, vec num, char id) {
     bool print_base = base >= 2;
     if (base == 0)
         base = 2;
-    if (num == 0) {
-        if (print_base)
-            printf("%c_%zu = 0\n", id, base);
-        else
-            printf("%c = 0\n", id);
+    if (num == 0 && print_base) {
+        printf("%c_%zu = 0\n", id, base);
         fflush(stdout);
         return TryOk;
     }
@@ -222,6 +220,12 @@ TryStatus try_write(size_t base, vec num, char id) {
         str[i] = digit;
         num /= base;
         i++;
+    }
+    if (!print_base) {
+        while (i < VEC_LEN) {
+            str[i] = '0';
+            i++;
+        }
     }
     str[i] = 0;
     for (int j = 0; j < i / 2; j++) {
@@ -364,6 +368,20 @@ TryStatus try_op(FILE *f, bool trace, size_t n, char *toks[MAX_CMD_LEN],
         *res = a | b;
     } else if (strcmp("&", toks[3]) == 0) {
         *res = a & b;
+    } else if (strcmp("->", toks[3]) == 0) {
+        *res = (~a) | b;
+    } else if (strcmp("<-", toks[3]) == 0) {
+        *res = (~b) | a;
+    } else if (strcmp("~", toks[3]) == 0) {
+        *res = ~(a ^ b);
+    } else if (strcmp("<>", toks[3]) == 0) {
+        *res = a ^ b;
+    } else if (strcmp("+>", toks[3]) == 0) {
+        *res = ~(a | (~b));
+    } else if (strcmp("?", toks[3]) == 0) {
+        *res = ~(a & b);
+    } else if (strcmp("!", toks[3]) == 0) {
+        *res = ~(a | b);
     } else {
         print_error(f, toks[3], "<op>");
         return TryError;
@@ -425,6 +443,9 @@ int main(int argc, const char *argw[]) {
         size_t n = tokenize(toks, buf, &off, f);
         if (n <= 0)
             break;
+        // print_tokens(stdout, toks);
+        // FREE_TOKS();
+        // continue;
         if (n < 5) {
             fprintf(stderr, "ERROR: not enough tokens:\n\t");
             print_tokens(stderr, toks);
