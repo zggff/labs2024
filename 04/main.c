@@ -116,7 +116,10 @@ long tokenize(char *s[MAX_CMD_LEN], char buf[BUF_SIZE], int *off, FILE *f) {
 }
 
 int print_error(const char *tok, const char *exp) {
-    fprintf(stderr, "ERROR: unexpected token: [%s]. expected [%s]\n", tok, exp);
+    if (*tok)
+        fprintf(stderr, "ERROR: expected [%s] got [%s]\n", exp, tok);
+    else
+        fprintf(stderr, "ERROR: expected [%s] got none\n", exp);
     fflush(stderr);
     return 0;
 }
@@ -171,7 +174,7 @@ TryStatus try_read(size_t base, size_t *res) {
     char *ptr;
     *res = strtoul(line, &ptr, base);
     if (*ptr != 0 && !isspace(*ptr)) {
-        fprintf(stderr, "ERROR: failed to parse [%s] as number\n", line);
+        fprintf(stderr, "ERROR: failed to parse [%s] as number in base [%zu]\n", line, base);
         return TryError;
     }
     return TryOk;
@@ -202,25 +205,24 @@ TryStatus try_read_write(size_t n, char *toks[MAX_CMD_LEN],
                          size_t vars[VAR_CNT]) {
     if (strcmp(toks[0], "read") != 0 && strcmp(toks[0], "write") != 0)
         return TryNotMatch;
-    if (n != 7) {
-        fprintf(stderr, "ERROR: incorrect number of arguments\n");
-        fflush(stderr);
-        return TryError;
-    }
-    if (strcmp(toks[1], "(") != 0) {
+    if (n <= 1 ||strcmp(toks[1], "(") != 0) {
         print_error(toks[1], "(");
         return TryError;
     }
-    if (!isalpha(toks[2][0]) || toks[2][1] != 0) {
+    if (n <= 2 || !isalpha(toks[2][0]) || toks[2][1] != 0) {
         print_error(toks[2], "<name>");
         return TryError;
     }
     int id = toks[2][0] - 'a';
-    if (strcmp(toks[3], ",") != 0) {
-        print_error(toks[1], ",");
+    if (n <= 2 || strcmp(toks[3], ",") != 0) {
+        print_error(toks[3], ",");
         return TryError;
     }
     char *ptr;
+    if (n <= 4) {
+        print_error(toks[4], "<base>");
+        return TryError;
+    }
     size_t base = strtoul(toks[4], &ptr, 10);
     if (*ptr) {
         fprintf(stderr, "ERROR: failed to parse [%s] as number\n", toks[4]);
@@ -228,11 +230,11 @@ TryStatus try_read_write(size_t n, char *toks[MAX_CMD_LEN],
         return TryError;
     }
     if (base < 2 || base > 36) {
-        fprintf(stderr, "ERROR: base not in range [2..36]: [%zu]\n", base);
+        fprintf(stderr, "ERROR: base [%zu] not in range [2..36]\n", base);
         fflush(stderr);
         return TryError;
     }
-    if (strcmp(toks[5], ")") != 0) {
+    if (n <= 5 || strcmp(toks[5], ")") != 0) {
         print_error(toks[1], ")");
         return TryError;
     }
@@ -269,21 +271,21 @@ int main(int argc, const char *argw[]) {
         if (n <= 0)
             break;
         if (n < 5) {
-            fprintf(stderr, "ERROR: not enough tokens: \n\t");
+            fprintf(stderr, "ERROR: not enough tokens:\n\t");
             print_tokens(stderr, toks);
             return 2;
         }
         if (n > 7) {
-            fprintf(stderr, "ERROR: too many tokens: \n\t");
+            fprintf(stderr, "ERROR: too many tokens:\n\t");
             print_tokens(stderr, toks);
             return 2;
         }
         for (size_t i = 0; i < sizeof(tries) / sizeof(tries[0]); i++) {
             int r = try_read_write(n, toks, vars);
-            if (r == 0)
+            if (r == TryOk)
                 continue;
-            if (r < 0)
-                return r;
+            if (r == TryError)
+                return 2;
         }
         FREE_TOKS();
     }
