@@ -89,3 +89,20 @@ assert test(
     ["A_10 = 255"],
 )
 fp.close()
+
+fp = tempfile.NamedTemporaryFile()
+fp.writelines(
+    [b"read(a, 36);", b"b:=\\a;", b"write(a,2);", b"write(b, 2);"]
+)
+fp.seek(0)
+assert test(
+    "check bit negation",
+    [fp.name],
+    0,
+    "z",
+    [
+        "A_2 = 100011",
+        "B_2 = 1111111111111111111111111111111111111111111111111111111111011100",
+    ],
+)
+fp.close()

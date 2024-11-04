@@ -35,6 +35,16 @@ int is_sep(char c) {
     return c == ',' || c == ';' || c == '(' || c == ')';
 }
 
+int is_token(const char *s) {
+    const char *tokens[] = {":=", "+", "&",  "->", "<-", "~", "<>", "+>",
+                            "?",  "!", "\\", "(",  ")",  ",", ";"};
+    for (size_t i = 0; i < sizeof(tokens) / sizeof(tokens[0]); i++) {
+        if (strncmp(s, tokens[i], strlen(tokens[i])) == 0)
+            return 1;
+    }
+    return 0;
+}
+
 long get_token(char **s, size_t *cap, char buf[BUF_SIZE], int *off, FILE *f) {
     if (*s == NULL) {
         *cap = 32;
@@ -86,8 +96,8 @@ long get_token(char **s, size_t *cap, char buf[BUF_SIZE], int *off, FILE *f) {
         (*s)[i] = tolower(c);
         i++;
         c = _getc(buf, off, f);
-    } while (c && !isspace(c) && !is_sep(c) && isalnum(c) == num && c != '{' &&
-             c != '%');
+    } while (c && !isspace(c) && !is_token(*s) && isalnum(c) == num &&
+             c != '{' && c != '%');
     (*off)--;
 
     (*s)[i] = 0;
@@ -174,13 +184,19 @@ TryStatus try_read(size_t base, size_t *res) {
     char *ptr;
     *res = strtoul(line, &ptr, base);
     if (*ptr != 0 && !isspace(*ptr)) {
-        fprintf(stderr, "ERROR: failed to parse [%s] as number in base [%zu]\n", line, base);
+        fprintf(stderr, "ERROR: failed to parse [%s] as number in base [%zu]\n",
+                line, base);
         return TryError;
     }
     return TryOk;
 }
 
 TryStatus try_write(size_t base, size_t num, char id) {
+    if (num == 0) {
+        printf("%c_%zu = 0\n", id, base);
+        fflush(stdout);
+        return TryOk;
+    }
     char str[128];
     int i = 0;
     while (num > 0) {
@@ -205,7 +221,7 @@ TryStatus try_read_write(size_t n, char *toks[MAX_CMD_LEN],
                          size_t vars[VAR_CNT]) {
     if (strcmp(toks[0], "read") != 0 && strcmp(toks[0], "write") != 0)
         return TryNotMatch;
-    if (n <= 1 ||strcmp(toks[1], "(") != 0) {
+    if (n <= 1 || strcmp(toks[1], "(") != 0) {
         print_error(toks[1], "(");
         return TryError;
     }
@@ -244,6 +260,30 @@ TryStatus try_read_write(size_t n, char *toks[MAX_CMD_LEN],
     return try_write(base, vars[id], 'A' + id);
 }
 
+TryStatus try_negation(size_t n, char *toks[MAX_CMD_LEN],
+                       size_t vars[VAR_CNT]) {
+    if (!isalpha(toks[0][0]) || toks[0][1] != 0) {
+        print_error(toks[0], "<res_id>");
+        return TryError;
+    }
+    int res_id = toks[0][0] - 'a';
+    if (n <= 1 || strcmp(toks[1], ":=") != 0) {
+        print_error(toks[1], ":=");
+        return TryError;
+    }
+    if (n <= 2 || strcmp(toks[2], "\\") != 0) {
+        print_error(toks[2], "\\");
+        return TryNotMatch;
+    }
+    if (!isalpha(toks[3][0]) || toks[3][1] != 0) {
+        print_error(toks[3], "<id>");
+        return TryError;
+    }
+    int id = toks[3][0] - 'a';
+    vars[res_id] = ~vars[id];
+    return TryOk;
+}
+
 int main(int argc, const char *argw[]) {
     if (argc < 2) {
         fprintf(stderr, "ERROR: input file not provided");
@@ -264,7 +304,7 @@ int main(int argc, const char *argw[]) {
 
     size_t vars[VAR_CNT] = {0};
 
-    try tries[] = {try_read_write};
+    try tries[] = {try_read_write, try_negation};
 
     while (true) {
         size_t n = tokenize(toks, buf, &off, f);
@@ -281,9 +321,9 @@ int main(int argc, const char *argw[]) {
             return 2;
         }
         for (size_t i = 0; i < sizeof(tries) / sizeof(tries[0]); i++) {
-            int r = try_read_write(n, toks, vars);
+            int r = (tries[i])(n, toks, vars);
             if (r == TryOk)
-                continue;
+                break;
             if (r == TryError)
                 return 2;
         }
