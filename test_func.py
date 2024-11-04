@@ -20,8 +20,13 @@ def set_test_leaks(val: bool) -> None:
 
 
 def run_process(
-    args: List[str], inp: str, prog_name: str = "./main.out", test_leaks: bool = False
+    args: List[str],
+    inp: str | List[str],
+    prog_name: str = "./main.out",
+    test_leaks: bool = False,
 ) -> tuple[int, str]:
+    if isinstance(inp, list):
+        inp = "\n".join(inp)
     prog = [prog_name] + args
     if test_leaks:
         prog = ["leaks", "--atExit", "--list", "--"] + prog
