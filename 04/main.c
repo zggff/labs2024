@@ -203,12 +203,12 @@ TryStatus try_read(FILE *f, size_t base, vec *res) {
     return TryOk;
 }
 
-TryStatus try_write(size_t base, vec num, char id) {
+TryStatus try_write(FILE *f, size_t base, vec num, char id) {
     bool print_base = base >= 2;
     if (base == 0)
         base = 2;
     if (num == 0 && print_base) {
-        printf("%c_%zu = 0\n", id, base);
+        fprintf(f, "%c_%zu = 0\n", id, base);
         fflush(stdout);
         return TryOk;
     }
@@ -234,9 +234,9 @@ TryStatus try_write(size_t base, vec num, char id) {
         str[i - j - 1] = tmp;
     }
     if (print_base)
-        printf("%c_%zu = %s\n", id, base, str);
+        fprintf(f, "%c_%zu = %s\n", id, base, str);
     else
-        printf("%c = %s\n", id, str);
+        fprintf(f, "%c = %s\n", id, str);
     fflush(stdout);
     return TryOk;
 }
@@ -282,22 +282,21 @@ TryStatus try_read_write(FILE *f, bool trace, size_t n, char *toks[MAX_CMD_LEN],
         vec old = vars[id];
         TryStatus r = try_read(f, base, &vars[id]);
         if (trace) {
-            printf("read(%c, %zu);\n", id + 'A', base);
-            printf("\t");
-            try_write(0, old, id + 'A');
-            printf("\t->\n");
-            printf("\t");
-            try_write(0, vars[id], id + 'A');
+            fprintf(f, "read(%c, %zu);\n", id + 'A', base);
+            fprintf(f, "\t");
+            try_write(f, 0, old, id + 'A');
+            fprintf(f, "\t->\n");
+            fprintf(f, "\t");
+            try_write(f, 0, vars[id], id + 'A');
         }
         return r;
     }
     if (trace) {
-        printf("write(%c, %zu);\n", id + 'A', base);
-        printf("\t");
-        try_write(0, vars[id], id + 'A');
+        fprintf(f, "write(%c, %zu);\n\t", id + 'A', base);
+        try_write(f, 0, vars[id], id + 'A');
     }
 
-    return try_write(base, vars[id], 'A' + id);
+    return try_write(stdout, base, vars[id], 'A' + id);
 }
 
 TryStatus try_negation(FILE *f, bool trace, size_t n, char *toks[MAX_CMD_LEN],
@@ -320,15 +319,15 @@ TryStatus try_negation(FILE *f, bool trace, size_t n, char *toks[MAX_CMD_LEN],
     }
     int id = toks[3][0] - 'a';
     if (trace) {
-        printf("%c := \\%c;\n\t", res_id + 'A', id + 'A');
-        try_write(0, vars[res_id], res_id + 'A');
-        printf("\t");
-        try_write(0, vars[id], id + 'A');
+        fprintf(f, "%c := \\%c;\n\t", res_id + 'A', id + 'A');
+        try_write(f, 0, vars[res_id], res_id + 'A');
+        fprintf(f, "\t");
+        try_write(f, 0, vars[id], id + 'A');
     }
     vars[res_id] = ~vars[id];
     if (trace) {
-        printf("\t->\n\t");
-        try_write(0, vars[res_id], res_id + 'A');
+        fprintf(f, "\t->\n\t");
+        try_write(f, 0, vars[res_id], res_id + 'A');
     }
 
     return TryOk;
@@ -388,16 +387,15 @@ TryStatus try_op(FILE *f, bool trace, size_t n, char *toks[MAX_CMD_LEN],
     }
 
     if (trace) {
-        printf("%c := %c %s %c;\n", res_id + 'A', id_a + 'A', toks[3],
-               id_b + 'A');
-        printf("\t");
-        try_write(0, res_old, res_id + 'A');
-        printf("\t");
-        try_write(0, vars[id_a], id_a + 'A');
-        printf("\t");
-        try_write(0, vars[id_b], id_b + 'A');
-        printf("\t->\n\t");
-        try_write(0, vars[res_id], res_id + 'A');
+        fprintf(f, "%c := %c %s %c;\n\t", res_id + 'A', id_a + 'A', toks[3],
+                id_b + 'A');
+        try_write(f, 0, res_old, res_id + 'A');
+        fprintf(f, "\t");
+        try_write(f, 0, vars[id_a], id_a + 'A');
+        fprintf(f, "\t");
+        try_write(f, 0, vars[id_b], id_b + 'A');
+        fprintf(f, "\t->\n\t");
+        try_write(f, 0, vars[res_id], res_id + 'A');
     }
 
     return TryOk;

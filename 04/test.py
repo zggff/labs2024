@@ -91,9 +91,7 @@ assert test(
 fp.close()
 
 fp = tempfile.NamedTemporaryFile()
-fp.writelines(
-    [b"read(a, 36);", b"b:=\\a;", b"write(a,2);", b"write(b, 2);"]
-)
+fp.writelines([b"read(a, 36);", b"b:=\\a;", b"write(a,2);", b"write(b, 2);"])
 fp.seek(0)
 assert test(
     "check bit negation",
@@ -102,7 +100,98 @@ assert test(
     "z",
     [
         "A_2 = 100011",
-        "B_2 = 1111111111111111111111111111111111111111111111111111111111011100",
+        "B_2 = 11011100",
     ],
 )
 fp.close()
+
+fp = tempfile.NamedTemporaryFile()
+fp.writelines(
+    [
+        b"read(a, 2);",
+        b"read(b, 2);",
+        b"c := a + b;",
+        b"write(c, 2);",
+        b"c := a & b;",
+        b"write(c, 2);",
+        b"c := a -> b;",
+        b"write(c, 2);",
+        b"c := b <- a;",
+        b"write(c, 2);",
+        b"c := a ~ b;",
+        b"write(c, 2);",
+        b"c := a <> b;",
+        b"write(c, 2);",
+        b"c := a +> b;",
+        b"write(c, 2);",
+        b"c := a ? b;",
+        b"write(c, 2);",
+        b"c := a ! b;",
+        b"write(c, 2);",
+        b"c := \\a;",
+        b"write(c, 2);",
+    ]
+)
+fp.seek(0)
+assert test(
+    "check all ops",
+    [fp.name],
+    0,
+    ["1101", "101010"],
+    [
+        "C_2 = 101111",
+        "C_2 = 1000",
+        "C_2 = 11111010",
+        "C_2 = 11111010",
+        "C_2 = 11011000",
+        "C_2 = 100111",
+        "C_2 = 100010",
+        "C_2 = 11110111",
+        "C_2 = 11010000",
+        "C_2 = 11110010",
+    ],
+)
+fp.close()
+
+fp = tempfile.NamedTemporaryFile()
+op = tempfile.NamedTemporaryFile()
+fp.writelines(
+    [
+        b"read(a, 2);",
+        b"read(b, 2);",
+        b"c := a + b;",
+        b"c := \\a;",
+    ]
+)
+fp.seek(0)
+assert test(
+    "check tracing",
+    [fp.name, "/trace", op.name],
+    0,
+    ["1101", "101010"],
+    [],
+    op.name,
+    [
+        "read(A, 2);",
+        "\tA = 00000000",
+        "\t->",
+        "\tA = 00001101",
+        "read(B, 2);",
+        "\tB = 00000000",
+        "\t->",
+        "\tB = 00101010",
+        "C := A + B;",
+        "\tC = 00000000",
+        "\tA = 00001101",
+        "\tB = 00101010",
+        "\t->",
+        "\tC = 00101111",
+        "C := \\A;",
+        "\tC = 00101111",
+        "\tA = 00001101",
+        "\t->",
+        "\tC = 11110010",
+    ],
+)
+fp.close()
+op.close()
