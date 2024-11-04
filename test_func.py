@@ -24,12 +24,16 @@ def run_process(
     inp: str | List[str],
     prog_name: str = "./main.out",
     test_leaks: bool = False,
+    capture=True,
 ) -> tuple[int, str]:
     if isinstance(inp, list):
         inp = "\n".join(inp)
     prog = [prog_name] + args
     if test_leaks:
         prog = ["leaks", "--atExit", "--list", "--"] + prog
+    if not capture:
+        p = subprocess.run(prog, text=True, input=inp)
+        return (p.returncode, "")
     try:
         p = subprocess.run(
             prog,
