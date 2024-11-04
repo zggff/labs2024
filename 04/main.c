@@ -47,6 +47,24 @@ long tokenise(char **s, size_t *cap, char buf[BUF_SIZE], int *off, FILE *f) {
         c = _getc(buf, off, f);
     } while (c && isspace(c));
 
+    if (c == '%') {
+        do {
+            c = _getc(buf, off, f);
+        } while (c && c != '\n');
+        do {
+            c = _getc(buf, off, f);
+        } while (c && isspace(c));
+    }
+
+    if (c == '{') {
+        do {
+            c = _getc(buf, off, f);
+        } while (c && c != '}');
+        do {
+            c = _getc(buf, off, f);
+        } while (c && isspace(c));
+    }
+
     if (!c) {
         (*s)[0] = 0;
         return 0;
@@ -64,10 +82,11 @@ long tokenise(char **s, size_t *cap, char buf[BUF_SIZE], int *off, FILE *f) {
             *cap = new_cap;
             *s = s2;
         }
-        (*s)[i] = c;
+        (*s)[i] = tolower(c);
         i++;
         c = _getc(buf, off, f);
-    } while (c && !isspace(c) && !is_sep(c) && isalnum(c) == num);
+    } while (c && !isspace(c) && !is_sep(c) && isalnum(c) == num && c != '{' &&
+             c != '%');
     (*off)--;
 
     (*s)[i] = 0;
@@ -94,9 +113,9 @@ int main(int argc, const char *argw[]) {
     char *tok = NULL;
     while (true) {
         int n = tokenise(&tok, &tok_len, buf, &off, f);
-        printf("%d : [%s]\n", n, tok);
         if (n <= 0)
             break;
+        printf("%d : [%s]\n", n, tok);
     }
 
     fclose(f);
