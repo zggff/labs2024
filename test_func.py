@@ -55,7 +55,7 @@ def test(
     inp: str | List[str],
     out: str | List[str],
     ofile: Optional[str] = None,
-    ofile_val: Optional[str] = None,
+    ofile_val: Optional[str] | Optional[List[str]] = None,
     prog_name="./main.out",
 ) -> bool:
     global cnt
@@ -91,6 +91,8 @@ def test(
 
     if ofile is not None and ofile_val is not None:
         s = open(ofile).read()
+        if isinstance(ofile_val, list):
+            ofile_val = "\n".join(ofile_val)
         if s.splitlines() != ofile_val.splitlines():
             print(f"FAILURE: wrong file output")
             return cmp_string(s, ofile_val)
