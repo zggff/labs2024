@@ -9,6 +9,9 @@
 #define VAR_CNT 26
 #define BUF_SIZE 128
 
+typedef unsigned char vec;
+#define VEC_MAX 255
+
 long _refill_buffer(char buffer[BUF_SIZE], int *buf_off, FILE *f) {
     if (*buf_off >= BUF_SIZE) {
         *buf_off = 0;
@@ -171,9 +174,9 @@ typedef enum TryStatus {
 } TryStatus;
 
 typedef TryStatus (*try)(FILE *f, bool trace, size_t n, char *toks[MAX_CMD_LEN],
-                         size_t vars[VAR_CNT]);
+                         vec vars[VAR_CNT]);
 
-TryStatus try_read(FILE *f, size_t base, size_t *res) {
+TryStatus try_read(FILE *f, size_t base, vec *res) {
     char *line = NULL;
     size_t line_len;
     size_t n = getline(&line, &line_len, stdin);
@@ -182,16 +185,24 @@ TryStatus try_read(FILE *f, size_t base, size_t *res) {
         return TryError;
     }
     char *ptr;
-    *res = strtoul(line, &ptr, base);
+    size_t c = strtoul(line, &ptr, base);
     if (*ptr != 0 && !isspace(*ptr)) {
         fprintf(f, "ERROR: failed to parse [%s] as number in base [%zu]\n",
                 line, base);
         return TryError;
     }
+    if (c > VEC_MAX) {
+        fprintf(f,
+                "ERROR: number [%zu] is out of bounds for vec. Max vec value "
+                "[%d]\n",
+                c, VEC_MAX);
+        return TryError;
+    }
+    *res = c;
     return TryOk;
 }
 
-TryStatus try_write(size_t base, size_t num, char id) {
+TryStatus try_write(size_t base, vec num, char id) {
     bool print_base = base >= 2;
     if (base == 0)
         base = 2;
@@ -227,7 +238,7 @@ TryStatus try_write(size_t base, size_t num, char id) {
 }
 
 TryStatus try_read_write(FILE *f, bool trace, size_t n, char *toks[MAX_CMD_LEN],
-                         size_t vars[VAR_CNT]) {
+                         vec vars[VAR_CNT]) {
     if (strcmp(toks[0], "read") != 0 && strcmp(toks[0], "write") != 0)
         return TryNotMatch;
     if (n <= 1 || strcmp(toks[1], "(") != 0) {
@@ -264,13 +275,12 @@ TryStatus try_read_write(FILE *f, bool trace, size_t n, char *toks[MAX_CMD_LEN],
         return TryError;
     }
     if (strcmp(toks[0], "read") == 0) {
+        vec old = vars[id];
+        TryStatus r = try_read(f, base, &vars[id]);
         if (trace) {
             printf("read(%c, %zu);\n", id + 'A', base);
             printf("\t");
-            try_write(0, vars[id], id + 'A');
-        }
-        TryStatus r = try_read(f, base, &vars[id]);
-        if (trace) {
+            try_write(0, old, id + 'A');
             printf("\t->\n");
             printf("\t");
             try_write(0, vars[id], id + 'A');
@@ -287,7 +297,7 @@ TryStatus try_read_write(FILE *f, bool trace, size_t n, char *toks[MAX_CMD_LEN],
 }
 
 TryStatus try_negation(FILE *f, bool trace, size_t n, char *toks[MAX_CMD_LEN],
-                       size_t vars[VAR_CNT]) {
+                       vec vars[VAR_CNT]) {
     if (!isalpha(toks[0][0]) || toks[0][1] != 0) {
         print_error(f, toks[0], "<res_id>");
         return TryError;
@@ -321,7 +331,7 @@ TryStatus try_negation(FILE *f, bool trace, size_t n, char *toks[MAX_CMD_LEN],
 }
 
 TryStatus try_op(FILE *f, bool trace, size_t n, char *toks[MAX_CMD_LEN],
-                 size_t vars[VAR_CNT]) {
+                 vec vars[VAR_CNT]) {
     if (!isalpha(toks[0][0]) || toks[0][1] != 0) {
         print_error(f, toks[0], "<res_id>");
         return TryError;
@@ -345,10 +355,10 @@ TryStatus try_op(FILE *f, bool trace, size_t n, char *toks[MAX_CMD_LEN],
     int res_id = toks[0][0] - 'a';
     int id_a = toks[2][0] - 'a';
     int id_b = toks[4][0] - 'a';
-    size_t *res = &vars[res_id];
-    size_t res_old = *res;
-    size_t a = vars[id_a];
-    size_t b = vars[id_b];
+    vec *res = &vars[res_id];
+    vec res_old = *res;
+    vec a = vars[id_a];
+    vec b = vars[id_b];
 
     if (strcmp("+", toks[3]) == 0) {
         *res = a | b;
@@ -407,7 +417,7 @@ int main(int argc, const char *argw[]) {
 
     char *toks[MAX_CMD_LEN] = {0};
 
-    size_t vars[VAR_CNT] = {0};
+    vec vars[VAR_CNT] = {0};
 
     try tries[] = {try_read_write, try_negation, try_op};
 
