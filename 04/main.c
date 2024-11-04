@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <stdatomic.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,7 +35,7 @@ int is_sep(char c) {
     return c == ',' || c == ';' || c == '(' || c == ')';
 }
 
-long tokenise(char **s, size_t *cap, char buf[BUF_SIZE], int *off, FILE *f) {
+long get_token(char **s, size_t *cap, char buf[BUF_SIZE], int *off, FILE *f) {
     if (*s == NULL) {
         *cap = 32;
         *s = malloc(*cap);
@@ -93,6 +94,154 @@ long tokenise(char **s, size_t *cap, char buf[BUF_SIZE], int *off, FILE *f) {
     return i;
 }
 
+#define MAX_CMD_LEN 20
+
+long tokenize(char *s[MAX_CMD_LEN], char buf[BUF_SIZE], int *off, FILE *f) {
+    size_t i = 0;
+
+    size_t tok_len = 0;
+    char *tok = NULL;
+    while (i < MAX_CMD_LEN) {
+        int n = get_token(&tok, &tok_len, buf, off, f);
+        if (n <= 0)
+            break;
+        s[i] = malloc(n + 1);
+        memcpy(s[i], tok, n + 1);
+        i++;
+        if (strcmp(tok, ";") == 0)
+            break;
+    }
+    free(tok);
+    return i;
+}
+
+int print_error(const char *tok, const char *exp) {
+    fprintf(stderr, "ERROR: unexpected token: [%s]. expected [%s]\n", tok, exp);
+    fflush(stderr);
+    return 0;
+}
+
+int print_tokens(FILE *f, char *tok[MAX_CMD_LEN]) {
+    fprintf(f, "{");
+    for (size_t i = 0; i < MAX_CMD_LEN && tok[i]; i++) {
+        if (i > 0)
+            fprintf(f, " ");
+        fprintf(f, "[%s]", tok[i]);
+    }
+    fprintf(f, "}\n");
+    return 0;
+}
+
+int is_number(const char *s) {
+    for (const char *c = s; *c; c++) {
+        if (!isnumber(*c)) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+#define FREE_TOKS()                                                            \
+    {                                                                          \
+        for (size_t i = 0; i < MAX_CMD_LEN; i++) {                             \
+            if (toks[i]) {                                                     \
+                free(toks[i]);                                                 \
+                toks[i] = NULL;                                                \
+            }                                                                  \
+        }                                                                      \
+    }
+
+typedef enum TryStatus {
+    TryOk = 0,
+    TryNotMatch = 1,
+    TryError = 2,
+} TryStatus;
+
+typedef TryStatus (*try)(size_t n, char *toks[MAX_CMD_LEN],
+                         size_t vars[VAR_CNT]);
+
+TryStatus try_read(size_t base, size_t *res) {
+    char *line = NULL;
+    size_t line_len;
+    size_t n = getline(&line, &line_len, stdin);
+    if (n == 0) {
+        fprintf(stderr, "ERROR: failed to read from stdin\n");
+        return TryError;
+    }
+    char *ptr;
+    *res = strtoul(line, &ptr, base);
+    if (*ptr != 0 && !isspace(*ptr)) {
+        fprintf(stderr, "ERROR: failed to parse [%s] as number\n", line);
+        return TryError;
+    }
+    return TryOk;
+}
+
+TryStatus try_write(size_t base, size_t num, char id) {
+    char str[128];
+    int i = 0;
+    while (num > 0) {
+        char digit = num % base;
+        digit = digit < 10 ? '0' + digit : 'A' + digit - 10;
+        str[i] = digit;
+        num /= base;
+        i++;
+    }
+    str[i] = 0;
+    for (int j = 0; j < i / 2; j++) {
+        char tmp = str[j];
+        str[j] = str[i - j - 1];
+        str[i - j - 1] = tmp;
+    }
+    printf("%c_%zu = %s\n", id, base, str);
+    fflush(stdout);
+    return TryOk;
+}
+
+TryStatus try_read_write(size_t n, char *toks[MAX_CMD_LEN],
+                         size_t vars[VAR_CNT]) {
+    if (strcmp(toks[0], "read") != 0 && strcmp(toks[0], "write") != 0)
+        return TryNotMatch;
+    if (n != 7) {
+        fprintf(stderr, "ERROR: incorrect number of arguments\n");
+        fflush(stderr);
+        return TryError;
+    }
+    if (strcmp(toks[1], "(") != 0) {
+        print_error(toks[1], "(");
+        return TryError;
+    }
+    if (!isalpha(toks[2][0]) || toks[2][1] != 0) {
+        print_error(toks[2], "<name>");
+        return TryError;
+    }
+    int id = toks[2][0] - 'a';
+    if (strcmp(toks[3], ",") != 0) {
+        print_error(toks[1], ",");
+        return TryError;
+    }
+    char *ptr;
+    size_t base = strtoul(toks[4], &ptr, 10);
+    if (*ptr) {
+        fprintf(stderr, "ERROR: failed to parse [%s] as number\n", toks[4]);
+        fflush(stderr);
+        return TryError;
+    }
+    if (base < 2 || base > 36) {
+        fprintf(stderr, "ERROR: base not in range [2..36]: [%zu]\n", base);
+        fflush(stderr);
+        return TryError;
+    }
+    if (strcmp(toks[5], ")") != 0) {
+        print_error(toks[1], ")");
+        return TryError;
+    }
+    if (strcmp(toks[0], "read") == 0) {
+        return try_read(base, &vars[id]);
+    }
+    return try_write(base, vars[id], 'A' + id);
+}
+
 int main(int argc, const char *argw[]) {
     if (argc < 2) {
         fprintf(stderr, "ERROR: input file not provided");
@@ -106,16 +255,37 @@ int main(int argc, const char *argw[]) {
         return 1;
     }
 
-    // size_t vars[VAR_CNT] = {0};
     char buf[BUF_SIZE] = {0};
-    size_t tok_len = 0;
     int off = 0;
-    char *tok = NULL;
+
+    char *toks[MAX_CMD_LEN] = {0};
+
+    size_t vars[VAR_CNT] = {0};
+
+    try tries[] = {try_read_write};
+
     while (true) {
-        int n = tokenise(&tok, &tok_len, buf, &off, f);
+        size_t n = tokenize(toks, buf, &off, f);
         if (n <= 0)
             break;
-        printf("%d : [%s]\n", n, tok);
+        if (n < 5) {
+            fprintf(stderr, "ERROR: not enough tokens: \n\t");
+            print_tokens(stderr, toks);
+            return 2;
+        }
+        if (n > 7) {
+            fprintf(stderr, "ERROR: too many tokens: \n\t");
+            print_tokens(stderr, toks);
+            return 2;
+        }
+        for (size_t i = 0; i < sizeof(tries) / sizeof(tries[0]); i++) {
+            int r = try_read_write(n, toks, vars);
+            if (r == 0)
+                continue;
+            if (r < 0)
+                return r;
+        }
+        FREE_TOKS();
     }
 
     fclose(f);
