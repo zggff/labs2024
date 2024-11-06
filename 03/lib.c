@@ -335,7 +335,7 @@ int polynom_deriv(Polynom *p, const Polynom *a, const char *var) {
     return S_OK;
 }
 
-/// var - by which variable to integrate 
+/// var - by which variable to integrate
 int polynom_prim(Polynom *p, const Polynom *a, const char *var) {
     // TODO:handle const value?
     while (a) {
@@ -353,12 +353,55 @@ int polynom_prim(Polynom *p, const Polynom *a, const char *var) {
     return S_OK;
 }
 
-/// var - name of singular vector 
+typedef struct PolynomGradArg {
+    const Polynom *p;
+    const char *var;
+    Polynom *res;
+} PolynomGradArg;
+
+int _polynom_grad_callback(const char *k, long v, void *ptr) {
+    (void)v;
+    PolynomGradArg *arg = ptr;
+    int n = strlen(k) + strlen(arg->var);
+
+    char *s = malloc(n + 2);
+    if (!s)
+        return S_MALLOC;
+    strcat(s, arg->var);
+    strcat(s, "0");
+    strcat(s, k);
+    //
+    Polynom cur = {0};
+    int r = polynom_deriv(&cur, arg->p, k);
+
+    Polynom *p = &cur;
+    while (p) {
+        if (trie_get(&p->cur.vars, s) != 0) {
+            fprintf(stderr,
+                    "ERROR: could not use [%s] as unary vector due to [%s]\n",
+                    k, s);
+            fflush(stderr);
+            free(s);
+            polynom_free(&cur);
+            return S_INVALID_INPUT;
+        }
+        trie_set(&p->cur.vars, s, 1);
+        p = p->next;
+    }
+    free(s);
+
+    if (r)
+        return r;
+    Polynom res = {0};
+    r = polynom_add(&res, arg->res, &cur);
+    polynom_free(arg->res);
+    polynom_free(&cur);
+
+    *(arg->res) = res;
+    return r;
+}
+/// var - name of singular vector
 int polynom_grad(Polynom *p, const Polynom *a, const char *var) {
-    (void)a;
-    (void)p;
-    (void)var;
-    fprintf(stderr, "ERROR: GRADIENT NOT IMPLEMENTED\n");
-    fflush(stderr);
-    return S_INVALID_INPUT;
+    PolynomGradArg args = {.p = a, .res = p, .var = var};
+    return trie_for_each(&a->cur.vars, _polynom_grad_callback, &args);
 }
