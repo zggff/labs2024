@@ -6,6 +6,7 @@
 
 #include "lib.h"
 #include "tokenize.h"
+#include "trie.h"
 
 #define FREE_ALL()                                                             \
     {                                                                          \
@@ -23,10 +24,6 @@ int handle_two(Polynom *p, char **toks, int tok_len) {
     const char *command = toks[0];
     Polynom a = {0};
     Polynom b = {0};
-    if (tok_len < 1 || strcmp(toks[1], "(") != 0) {
-        token_print_error(stderr, toks[1], "(");
-        return S_INVALID_INPUT;
-    }
     tok_len -= 2;
     toks += 2;
     int off = 0;
@@ -50,6 +47,9 @@ int handle_two(Polynom *p, char **toks, int tok_len) {
         a = *p;
         toks++;
         tok_len--;
+    } else {
+        token_print_error(stderr, toks[0], "(");
+        return S_INVALID_INPUT;
     }
 
     memset(p, 0, sizeof(Polynom));
@@ -61,10 +61,106 @@ int handle_two(Polynom *p, char **toks, int tok_len) {
     } else {
         res = polynom_mul(p, &a, &b);
     }
-    polynom_print(p);
+    if (!res)
+        polynom_print(p);
     polynom_free(&a);
     polynom_free(&b);
     return res;
+}
+
+int check_val(const char *s) {
+    while (*s) {
+        if (!isalnum(*s))
+            return 0;
+        s++;
+    }
+    return 1;
+}
+
+int handle_eval_callback(const char *k, long v, void *ptr) {
+    (void)ptr;
+    (void)k;
+    free((double *)v);
+    return S_OK;
+}
+
+int handle_eval(Polynom *p, char **toks, int tok_len) {
+    tok_len -= 2;
+    toks += 2;
+    Polynom a = {0};
+    if (strcmp(toks[0], "{") != 0) {
+        int off = 0;
+        int r = polynom_parse_tokens(&a, toks, tok_len, &off);
+        if (r)
+            return r;
+        tok_len -= off;
+        toks += off;
+        if (strcmp(toks[0], ",") != 0) {
+            token_print_error(stderr, toks[0], ",");
+            return S_INVALID_INPUT;
+        }
+        tok_len--;
+        toks++;
+    } else {
+        a = *p;
+    }
+    if (strcmp(toks[0], "{") != 0) {
+        token_print_error(stderr, toks[0], "{");
+        return S_INVALID_INPUT;
+    }
+    toks++;
+    tok_len--;
+    int i = 0;
+    Trie vals = {0};
+    while (i < tok_len - 2 && strcmp(toks[i], "}") != 0) {
+        if (!check_val(toks[i])) {
+            fprintf(stderr, "ERROR: invalid variable [%s]\n", toks[i]);
+            fflush(stderr);
+            trie_for_each(&vals, handle_eval_callback, NULL);
+            trie_free(&vals);
+            return S_INVALID_INPUT;
+        }
+        char *var = toks[i];
+        if (strcmp(toks[i + 1], ":") != 0) {
+            trie_for_each(&vals, handle_eval_callback, NULL);
+            token_print_error(stderr, toks[0], ":");
+            return S_INVALID_INPUT;
+        }
+        char *tmp;
+        double f = strtod(toks[i + 2], &tmp);
+        if (*tmp != 0) {
+            fprintf(stderr, "ERROR: failed to parse [%s] as number\n",
+                    toks[i + 2]);
+            fflush(stderr);
+            trie_for_each(&vals, handle_eval_callback, NULL);
+            trie_free(&vals);
+            return S_INVALID_INPUT;
+        }
+        double *f_ptr = malloc(sizeof(double));
+        if (!f_ptr)
+            return S_MALLOC;
+        *f_ptr = f;
+        trie_set(&vals, var, (long)f_ptr);
+        i += 3;
+        if (strcmp(toks[i], ",") == 0)
+            i++;
+    }
+    toks += i;
+    tok_len -= i;
+    if (tok_len < 1 || strcmp(toks[0], "}") != 0) {
+        token_print_error(stderr, toks[0], "}");
+        return S_INVALID_INPUT;
+    }
+    double res = 0;
+    int r = polynom_eval(&res, &a, &vals);
+    if (!r)
+        printf("%f\n", res);
+
+    trie_for_each(&vals, handle_eval_callback, NULL);
+    polynom_free(&a);
+    trie_free(&vals);
+    memset(p, 0, sizeof(Polynom));
+    return r;
 }
 
 int handle_ni(Polynom *p, char **toks, int tok_len) {
@@ -89,7 +185,7 @@ int main(int argc, char *argw[]) {
     }
 
     char *ops[] = {"Add", "Sub", "Mult", "Eval", "Deriv", "Grad", "Prim"};
-    handle handles[] = {handle_two, handle_two, handle_two, handle_ni,
+    handle handles[] = {handle_two, handle_two, handle_two, handle_eval,
                         handle_ni,  handle_ni,  handle_ni};
 
     char **toks = NULL;
@@ -110,6 +206,22 @@ int main(int argc, char *argw[]) {
             if (strcmp(toks[0], ops[i]) == 0)
                 h = &handles[i];
         }
+        if (n <= 1 || strcmp(toks[1], "(") != 0) {
+            token_print_error(stderr, toks[1], "(");
+            res = S_INVALID_INPUT;
+            break;
+        }
+        if (n <= 2 || strcmp(toks[n - 2], ")") != 0) {
+            token_print_error(stderr, toks[n - 2], ")");
+            res = S_INVALID_INPUT;
+            break;
+        }
+        if (n <= 3 || strcmp(toks[n - 1], ";") != 0) {
+            token_print_error(stderr, toks[n - 1], ";");
+            res = S_INVALID_INPUT;
+            break;
+        }
+
         if (h) {
             res = (*h)(&p, toks, n);
             fflush(stdout);

@@ -123,7 +123,7 @@ int trie_for_each(const Trie *t, trie_callback call, void *ptr) {
     return r;
 }
 
-int trie_len_callback(const char *c, int val, void *ptr) {
+int trie_len_callback(const char *c,long val, void *ptr) {
     (void)c;
     (void)val;
     int *res = ptr;
@@ -144,7 +144,7 @@ struct TrieEqCallbackArg {
     bool *res;
 };
 
-int trie_eq_callback(const char *c, int val, void *ptr) {
+int trie_eq_callback(const char *c, long val, void *ptr) {
     struct TrieEqCallbackArg *b = ptr;
     if (trie_get(b->t, c) != val) {
         *(b->res) = false;
@@ -166,7 +166,7 @@ int trie_eq(const Trie *a, const Trie *b) {
     return res;
 }
 
-int trie_dup_callback(const char *c, int val, void *ptr) {
+int trie_dup_callback(const char *c, long val, void *ptr) {
     Trie *t = ptr;
     return trie_set(t, c, val);
 }

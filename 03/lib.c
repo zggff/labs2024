@@ -7,9 +7,9 @@
 #include "trie.h"
 #include "lib.h"
 
-int monom_print_callback(const char *k, int val, void *ptr) {
+int monom_print_callback(const char *k, long val, void *ptr) {
     (void)ptr;
-    printf(" * %s^%d", k, val);
+    printf(" * %s^%ld", k, val);
     return S_OK;
 }
 
@@ -136,6 +136,8 @@ int polynom_parse_tokens(Polynom *p, char **toks, int toks_len, int *off) {
         if (!valid) {
             fprintf(stderr, "ERROR: unexpected token [%s]\n", toks[*off]);
             fflush(stderr);
+            polynom_free(p);
+            trie_free(&m.vars);
             return S_INVALID_INPUT;
         }
         r = polynom_add_monom(p, m);
@@ -230,7 +232,7 @@ int polynom_sub(Polynom *p, const Polynom *a, const Polynom *b) {
     return _polynom_add_mult(p, a, b, -1);
 }
 
-int _monom_mult_callback(const char *k, int v, void *ptr) {
+int _monom_mult_callback(const char *k, long v, void *ptr) {
     Trie *m = ptr;
     int cur = trie_get(m, k);
     return trie_set(m, k, cur + v);
@@ -286,9 +288,9 @@ typedef struct PolynomEvalArg {
     const Trie *vals;
 } PolynomEvalArg;
 
-int _polynom_eval_callback(const char *k, int v, void *ptr) {
+int _polynom_eval_callback(const char *k, long v, void *ptr) {
     PolynomEvalArg *args = ptr;
-    float *val = (float *)trie_get(args->vals, k);
+    double *val = (double *)trie_get(args->vals, k);
     if (val == NULL) {
         fprintf(stderr, "ERROR: value for [%s] not provided\n", k);
         fflush(stderr);
@@ -298,7 +300,7 @@ int _polynom_eval_callback(const char *k, int v, void *ptr) {
     return S_OK;
 }
 
-/// in trie pass pointers to float values
+/// in trie pass pointers to double values
 int polynom_eval(double *res, const Polynom *a, const Trie *vals) {
     *res = 0;
     while (a) {

@@ -17,7 +17,7 @@ struct Trie {
     long val; // we can hold any 4 byte or less value including doubles
 };
 
-typedef int (*trie_callback)(const char *var, int val, void *ptr);
+typedef int (*trie_callback)(const char *var, long val, void *ptr);
 
 int trie_set(Trie *t, const char *k, long v);
 long trie_get(const Trie *t, const char *k);

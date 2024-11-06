@@ -35,7 +35,8 @@ char token_file_getter(char buf[BUF_SIZE], int *off, void *f_ptr) {
 
 int _is_sep(char c) {
     return isspace(c) || c == '-' || c == '+' || c == '*' || c == '^' ||
-           c == ',' || c == ';' || c == '(' || c == ')' || c == '%' || c == '[';
+           c == ',' || c == ';' || c == '(' || c == ')' || c == ':' ||
+           c == '{' || c == '}' || c == '%' || c == '[';
 }
 
 long token_get(char **s, size_t *cap, char *buf, int *off,
