@@ -6,7 +6,7 @@ TARGET = main.out
 
 build: ${TARGET}
 
-${TARGET}: main.c lib.c lib.h trie.c trie.h
+${TARGET}: main.c lib.c lib.h trie.c trie.h tokenize.h
 	${CC} ${CFLAGS} -o $@ main.c lib.c trie.c
 
 test: build

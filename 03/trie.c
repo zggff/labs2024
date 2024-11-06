@@ -1,5 +1,6 @@
 #include "trie.h"
 #include <stdio.h>
+#include <stdbool.h>
 
 int char_to_index(char c) {
     c = tolower(c);
@@ -118,4 +119,38 @@ int trie_for_each(const Trie *t, trie_callback call, void *ptr) {
     if (s)
         free(s);
     return r;
+}
+
+int trie_len_callback(const char *c, int val, void *ptr) {
+    (void)c;
+    (void)val;
+    int *res = ptr;
+    (*res)++;
+    return S_OK;
+}
+
+int trie_len(const Trie *t) {
+    int len = 0;
+    return trie_for_each(t, trie_len_callback, &len);
+}
+
+struct TrieEqCallbackArg {
+    Trie *t;
+    bool *res;
+};
+
+int trie_eq_callback(const char *c, int val, void *ptr) {
+    struct TrieEqCallbackArg *b = ptr;
+    if (trie_get(b->t, c) != val)
+        b->res = false;
+    return S_OK;
+}
+
+int trie_eq(const Trie *a, const Trie *b) {
+    int len_a, len_b;
+    if ((len_a = trie_len(a)) < 0 || (len_b = trie_len(b)) < 0)
+        return -1;
+    if (len_a != len_b)
+        return 0;
+    return 1;
 }

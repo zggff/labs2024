@@ -11,6 +11,8 @@ typedef struct Monom {
 } Monom;
 
 int monom_print(const Monom *m);
+int monom_parse_str(Monom *p, const char *s);
+int monom_parse_tokens(Monom *p, char **toks, int toks_len);
 
 typedef struct Polynom Polynom;
 struct Polynom {
@@ -18,3 +20,6 @@ struct Polynom {
     Monom cur;
     Polynom *next;
 };
+
+int polynom_free(Polynom *p);
+int polynom_parse(Polynom *p, const char *s);

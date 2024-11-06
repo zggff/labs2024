@@ -21,9 +21,12 @@ int main(int argc, char *argw[]) {
     }
 
     Monom m = {0};
-    m.coef = 12.4;
-    trie_set(&m.vars, "x", 12);
-    trie_set(&m.vars, "y", 3);
+    int r = monom_parse_str(&m, "12 * xy^12 * x21^4 * -2 * xy^-3");
+    printf("r = %d\n", r);
+
+    // m.coef = 12.4;
+    // trie_set(&m.vars, "x", 12);
+    // trie_set(&m.vars, "y", 3);
     monom_print(&m);
     printf("\n");
     // printf("%ld\n", trie_get(&m.vars, "y"));
