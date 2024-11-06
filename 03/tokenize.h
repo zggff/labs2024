@@ -67,6 +67,7 @@ long token_parse_list(char ***s, size_t *s_cap, const char *buf, int *off) {
         *s = malloc(*s_cap * sizeof(char *));
         if (*s == NULL)
             return 0;
+        memset(*s, 0, *s_cap * sizeof(char *));
     }
 
     size_t i = 0;
@@ -80,8 +81,9 @@ long token_parse_list(char ***s, size_t *s_cap, const char *buf, int *off) {
                 free(s);
                 return 0;
             }
-            *s_cap = new_cap;
             *s = s2;
+            memset(*s + *s_cap, 0, (new_cap - *s_cap) * sizeof(char *));
+            *s_cap = new_cap;
         }
 
         int n = token_get(&tok, &tok_len, buf, off);

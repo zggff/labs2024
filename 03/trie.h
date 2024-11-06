@@ -24,3 +24,4 @@ int trie_get(const Trie *t, const char *k);
 int trie_free(Trie *t);
 int trie_for_each(const Trie *t, trie_callback call, void *ptr);
 int trie_eq(const Trie *a, const Trie *b);
+int trie_len(const Trie *t);
