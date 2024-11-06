@@ -8,7 +8,10 @@
 
 #define BUF_SIZE 128
 
-char _getc(const char *buf, int *off) {
+typedef char (*token_char_getter)(char *, int *, void *);
+
+char token_str_getter(char *buf, int *off, void *f) {
+    (void)f;
     if (buf[*off] == 0)
         return 0;
     char res = buf[*off];
@@ -16,12 +19,37 @@ char _getc(const char *buf, int *off) {
     return res;
 }
 
-int _is_sep(char c) {
-    return isspace(c) || c == '-' || c == '+' || c == '*' || c == '^' ||
-           c == ',' || c == ';' || c == '(' || c == ')';
+char token_file_getter(char buf[BUF_SIZE], int *off, void *f_ptr) {
+    FILE *f = f_ptr;
+    if (*buf == 0) {
+        *off = 0;
+        long c = fread(buf, 1, BUF_SIZE, f);
+        if (c < BUF_SIZE)
+            buf[c] = 0;
+        if (c == 0)
+            return 0;
+    }
+    if (*off >= BUF_SIZE) {
+        *off = 1;
+        buf[0] = buf[BUF_SIZE - 1];
+        long c = fread(buf + 1, 1, BUF_SIZE - 1, f);
+        if (*off + c < BUF_SIZE)
+            buf[*off + c] = 0;
+        if (c == 0)
+            return 0;
+    }
+    char res = buf[*off];
+    (*off)++;
+    return res;
 }
 
-long token_get(char **s, size_t *cap, const char *buf, int *off) {
+int _is_sep(char c) {
+    return isspace(c) || c == '-' || c == '+' || c == '*' || c == '^' ||
+           c == ',' || c == ';' || c == '(' || c == ')' || c == '%' || c == '[';
+}
+
+long token_get(char **s, size_t *cap, char *buf, int *off,
+               token_char_getter get, void *f) {
     if (*s == NULL) {
         *cap = 32;
         *s = malloc(*cap);
@@ -30,7 +58,7 @@ long token_get(char **s, size_t *cap, const char *buf, int *off) {
     }
     char c;
     do {
-        c = _getc(buf, off);
+        c = get(buf, off, f);
     } while (c && isspace(c));
 
     if (!c) {
@@ -50,9 +78,9 @@ long token_get(char **s, size_t *cap, const char *buf, int *off) {
             *cap = new_cap;
             *s = s2;
         }
-        (*s)[i] = tolower(c);
+        (*s)[i] = c;
         i++;
-        c = _getc(buf, off);
+        c = get(buf, off, f);
     } while (c && !_is_sep(c) && !_is_sep((*s)[i - 1]));
     if (c != 0)
         (*off)--;
@@ -61,7 +89,8 @@ long token_get(char **s, size_t *cap, const char *buf, int *off) {
     return i;
 }
 
-long token_parse_list(char ***s, size_t *s_cap, const char *buf, int *off) {
+long token_parse_list(char ***s, size_t *s_cap, char *buf, int *off,
+                      token_char_getter get, void *f) {
     if (*s == NULL) {
         *s_cap = 32;
         *s = malloc(*s_cap * sizeof(char *));
@@ -86,7 +115,7 @@ long token_parse_list(char ***s, size_t *s_cap, const char *buf, int *off) {
             *s_cap = new_cap;
         }
 
-        int n = token_get(&tok, &tok_len, buf, off);
+        int n = token_get(&tok, &tok_len, buf, off, get, f);
         if (n <= 0)
             break;
         (*s)[i] = malloc(n + 1);
@@ -95,6 +124,23 @@ long token_parse_list(char ***s, size_t *s_cap, const char *buf, int *off) {
     }
     free(tok);
     return i;
+}
+
+int token_parse_file(char ***s, size_t *s_cap, char buffer[BUF_SIZE], int *off,
+                     FILE *f) {
+    return token_parse_list(s, s_cap, buffer, off, token_file_getter, f);
+}
+
+int token_parse_str(char ***res, size_t *res_cap, const char *str) {
+    int off = 0;
+    int n = strlen(str);
+    char *s = malloc(n + 1);
+    if (!s)
+        return -1;
+    memcpy(s, str, n);
+    int r = token_parse_list(res, res_cap, s, &off, token_str_getter, NULL);
+    free(s);
+    return r;
 }
 
 int token_print_error(FILE *f, const char *tok, const char *exp) {

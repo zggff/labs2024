@@ -148,8 +148,9 @@ int polynom_parse_tokens(Polynom *p, char **toks, int toks_len, int *off) {
 int polynom_parse_str(Polynom *p, const char *s) {
     size_t tok_len = 0;
     char **toks = NULL;
-    int off = 0;
-    int n = token_parse_list(&toks, &tok_len, s, &off);
+    int n = token_parse_str(&toks, &tok_len, s);
+    // int off = 0;
+    // int n = token_parse_list(&toks, &tok_len, s, &off, token_str_getter, NULL);
     int res_off = 0;
     int res = polynom_parse_tokens(p, toks, n, &res_off);
     for (int i = 0; i < n; i++) {
@@ -162,8 +163,7 @@ int polynom_parse_str(Polynom *p, const char *s) {
 int monom_parse_str(Monom *p, const char *s) {
     size_t tok_len = 0;
     char **toks = NULL;
-    int off = 0;
-    int n = token_parse_list(&toks, &tok_len, s, &off);
+    int n = token_parse_str(&toks, &tok_len, s);
     int res_off = 0;
     int res = monom_parse_tokens(p, toks, n, &res_off);
     for (int i = 0; i < n; i++) {
