@@ -2,12 +2,16 @@ CC = clang
 CFLAGS = -std=gnu17 -pedantic -Wall -Wextra -g
 TARGET = main.out
 
+
+SOURCES=$(wildcard *.c)
+HEADERS=$(wildcard *.h)
+
 .PHONY: clean run build test
 
 build: ${TARGET}
 
-${TARGET}: main.c lib.c lib.h trie.c trie.h tokenize.h
-	${CC} ${CFLAGS} -o $@ main.c lib.c trie.c
+${TARGET}: ${SOURCES} ${HEADERS} 
+	${CC} ${CFLAGS} -o $@ ${SOURCES} 
 
 test: build
 	@pypy3 ./test.py
