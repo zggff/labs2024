@@ -150,7 +150,8 @@ int polynom_parse_str(Polynom *p, const char *s) {
     char **toks = NULL;
     int n = token_parse_str(&toks, &tok_len, s);
     // int off = 0;
-    // int n = token_parse_list(&toks, &tok_len, s, &off, token_str_getter, NULL);
+    // int n = token_parse_list(&toks, &tok_len, s, &off, token_str_getter,
+    // NULL);
     int res_off = 0;
     int res = polynom_parse_tokens(p, toks, n, &res_off);
     for (int i = 0; i < n; i++) {
@@ -187,6 +188,8 @@ int polynom_print(const Polynom *p) {
 }
 
 int polynom_free(Polynom *p) {
+    trie_free(&p->cur.vars);
+    p = p->next;
     while (p) {
         Polynom *next = p->next;
         trie_free(&p->cur.vars);
@@ -195,3 +198,122 @@ int polynom_free(Polynom *p) {
     }
     return 0;
 }
+
+int _polynom_add_mult(Polynom *p, const Polynom *a, const Polynom *b,
+                      float mult) {
+    while (a) {
+        Monom m = {0};
+        m.coef = a->cur.coef;
+        trie_dup(&m.vars, &a->cur.vars);
+        int r = polynom_add_monom(p, m);
+        if (r)
+            return r;
+        a = a->next;
+    }
+    while (b) {
+        Monom m = {0};
+        m.coef = mult * b->cur.coef;
+        trie_dup(&m.vars, &b->cur.vars);
+        int r = polynom_add_monom(p, m);
+        if (r)
+            return r;
+        b = b->next;
+    }
+    return S_OK;
+}
+
+int polynom_add(Polynom *p, const Polynom *a, const Polynom *b) {
+    return _polynom_add_mult(p, a, b, 1);
+}
+
+int polynom_sub(Polynom *p, const Polynom *a, const Polynom *b) {
+    return _polynom_add_mult(p, a, b, -1);
+}
+
+int _monom_mult_callback(const char *k, int v, void *ptr) {
+    Trie *m = ptr;
+    int cur = trie_get(m, k);
+    return trie_set(m, k, cur + v);
+}
+
+int monom_mult(Monom *m, const Monom *a, const Monom *b) {
+    m->coef = a->coef * b->coef;
+    int r = trie_dup(&m->vars, &a->vars);
+    if (r)
+        return r;
+    r = trie_for_each(&b->vars, _monom_mult_callback, &m->vars);
+    return r;
+}
+
+int polynom_mul(Polynom *p, const Polynom *a, const Polynom *b) {
+    while (a) {
+        const Polynom *c = b;
+        while (c) {
+            Monom m = {0};
+            int r = monom_mult(&m, &a->cur, &c->cur);
+            if (r)
+                return r;
+            r = polynom_add_monom(p, m);
+            if (r)
+                return r;
+            c = c->next;
+        }
+        a = a->next;
+    }
+    return S_OK;
+}
+
+int qpow(double *res, double x, int n) {
+    bool rev = n < 0;
+    if (rev)
+        n *= -1;
+    *res = 1;
+    for (;;) {
+        if (n & 1)
+            (*res) *= x;
+        n >>= 1;
+        if (!n)
+            break;
+        x *= x;
+    }
+    if (rev)
+        *res = 1 / *res;
+    return 0;
+}
+
+typedef struct PolynomEvalArg {
+    double *res;
+    const Trie *vals;
+} PolynomEvalArg;
+
+int _polynom_eval_callback(const char *k, int v, void *ptr) {
+    PolynomEvalArg *args = ptr;
+    float *val = (float *)trie_get(args->vals, k);
+    if (val == NULL) {
+        fprintf(stderr, "ERROR: value for [%s] not provided\n", k);
+        fflush(stderr);
+        return S_INVALID_INPUT;
+    }
+    qpow(args->res, *val, v);
+    return S_OK;
+}
+
+/// in trie pass pointers to float values
+int polynom_eval(double *res, const Polynom *a, const Trie *vals) {
+    *res = 0;
+    while (a) {
+        double r = 1;
+        PolynomEvalArg args = {&r, vals};
+        int s = trie_for_each(&a->cur.vars, _polynom_eval_callback, &args);
+        if (s)
+            return s;
+        (*res) += r * a->cur.coef;
+        a = a->next;
+    }
+    return S_OK;
+}
+
+int polynom_deriv(Polynom *p, const Polynom *a, const char *var);
+int polynom_prim(Polynom *p, const Polynom *a, const char *var);
+
+int polynom_grad(Polynom *p, const Polynom *a);

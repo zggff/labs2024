@@ -33,7 +33,7 @@ int trie_remove(Trie *t, const char *k) {
     return trie_remove_rec(t->children[char_to_index(*k)], k + 1);
 }
 
-int trie_set(Trie *t, const char *k, int v) {
+int trie_set(Trie *t, const char *k, long v) {
     if (v == 0)
         return trie_remove(t, k);
     Trie **tmp = &t;
@@ -53,7 +53,7 @@ int trie_set(Trie *t, const char *k, int v) {
     return S_OK;
 }
 
-int trie_get(const Trie *t, const char *k) {
+long trie_get(const Trie *t, const char *k) {
     for (const char *c = k; *c; c++) {
         int i = char_to_index(*c);
         if (i < 0)
@@ -67,10 +67,12 @@ int trie_get(const Trie *t, const char *k) {
 }
 
 int trie_free(Trie *t) {
-    if (!t)
-        return 0;
-    for (int i = 0; i < TRIE_SIZE; i++)
-        trie_free(t->children[i]);
+    for (int i = 0; i < TRIE_SIZE; i++) {
+        if (t->children[i]) {
+            trie_free(t->children[i]);
+            free(t->children[i]);
+        }
+    }
     return 0;
 }
 
@@ -162,4 +164,13 @@ int trie_eq(const Trie *a, const Trie *b) {
     if (r)
         return -1;
     return res;
+}
+
+int trie_dup_callback(const char *c, int val, void *ptr) {
+    Trie *t = ptr;
+    return trie_set(t, c, val);
+}
+
+int trie_dup(Trie *r, const Trie *t) {
+    return trie_for_each(t, trie_dup_callback, r);
 }
