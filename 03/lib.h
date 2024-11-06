@@ -10,10 +10,6 @@ typedef struct Monom {
     Trie vars;
 } Monom;
 
-int monom_print(const Monom *m);
-int monom_parse_str(Monom *p, const char *s);
-int monom_parse_tokens(Monom *p, char **toks, int toks_len, int *off);
-
 typedef struct Polynom Polynom;
 struct Polynom {
     Polynom *prev;
@@ -34,5 +30,4 @@ int polynom_eval(double *res, const Polynom *a, const Trie *vals);
 
 int polynom_deriv(Polynom *p, const Polynom *a, const char *var);
 int polynom_prim(Polynom *p, const Polynom *a, const char *var);
-
-int polynom_grad(Polynom *p, const Polynom *a);
+int polynom_grad(Polynom *p, const Polynom *a, const char *var);

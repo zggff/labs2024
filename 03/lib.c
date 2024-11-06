@@ -15,7 +15,8 @@ int monom_print_callback(const char *k, long val, void *ptr) {
 
 int monom_print(const Monom *m) {
     printf("%f", m->coef);
-    return trie_for_each(&m->vars, monom_print_callback, NULL);
+    int res = trie_for_each(&m->vars, monom_print_callback, NULL);
+    return res;
 }
 
 int monom_parse_tokens(Monom *p, char **toks, int toks_len, int *off) {
@@ -66,7 +67,7 @@ int monom_parse_tokens(Monom *p, char **toks, int toks_len, int *off) {
                     power *= -1;
                 i += 2;
             }
-            int current = trie_get(&p->vars, name);
+            long current = trie_get(&p->vars, name);
             trie_set(&p->vars, name, current + power);
         } else {
             fprintf(stderr, "ERROR: unexpected token [%s]\n", toks[i]);
@@ -234,7 +235,7 @@ int polynom_sub(Polynom *p, const Polynom *a, const Polynom *b) {
 
 int _monom_mult_callback(const char *k, long v, void *ptr) {
     Trie *m = ptr;
-    int cur = trie_get(m, k);
+    long cur = trie_get(m, k);
     return trie_set(m, k, cur + v);
 }
 
@@ -315,7 +316,49 @@ int polynom_eval(double *res, const Polynom *a, const Trie *vals) {
     return S_OK;
 }
 
-int polynom_deriv(Polynom *p, const Polynom *a, const char *var);
-int polynom_prim(Polynom *p, const Polynom *a, const char *var);
+/// var - by which variable to differentiate
+int polynom_deriv(Polynom *p, const Polynom *a, const char *var) {
+    while (a) {
+        long val = trie_get(&a->cur.vars, var);
+        if (val > 0) {
+            Monom m = {0};
+            m.coef = a->cur.coef * val;
+            int r;
+            if ((r = trie_dup(&m.vars, &a->cur.vars)) != S_OK ||
+                (r = trie_set(&m.vars, var, val - 1)) != S_OK ||
+                (r = polynom_add_monom(p, m)) != S_OK) {
+                return r;
+            }
+        }
+        a = a->next;
+    }
+    return S_OK;
+}
 
-int polynom_grad(Polynom *p, const Polynom *a);
+/// var - by which variable to integrate 
+int polynom_prim(Polynom *p, const Polynom *a, const char *var) {
+    // TODO:handle const value?
+    while (a) {
+        long val = trie_get(&a->cur.vars, var);
+        Monom m = {0};
+        m.coef = a->cur.coef / (val + 1);
+        int r;
+        if ((r = trie_dup(&m.vars, &a->cur.vars)) != S_OK ||
+            (r = trie_set(&m.vars, var, val + 1)) != S_OK ||
+            (r = polynom_add_monom(p, m)) != S_OK) {
+            return r;
+        }
+        a = a->next;
+    }
+    return S_OK;
+}
+
+/// var - name of singular vector 
+int polynom_grad(Polynom *p, const Polynom *a, const char *var) {
+    (void)a;
+    (void)p;
+    (void)var;
+    fprintf(stderr, "ERROR: GRADIENT NOT IMPLEMENTED\n");
+    fflush(stderr);
+    return S_INVALID_INPUT;
+}

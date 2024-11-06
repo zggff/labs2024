@@ -1,6 +1,7 @@
 #include "trie.h"
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
 int char_to_index(char c) {
     c = tolower(c);
@@ -19,23 +20,8 @@ char index_to_char(int i) {
     return -1;
 }
 
-int trie_remove_rec(Trie *t, const char *k) {
-    if (*k == 0)
-        return S_OK;
-    trie_remove_rec(t->children[char_to_index(*k)], k + 1);
-    free(t);
-    return S_OK;
-}
-
-int trie_remove(Trie *t, const char *k) {
-    if (trie_get(t, k) == 0)
-        return S_OK;
-    return trie_remove_rec(t->children[char_to_index(*k)], k + 1);
-}
-
 int trie_set(Trie *t, const char *k, long v) {
-    if (v == 0)
-        return trie_remove(t, k);
+    // TODO: implement pruning zero branches
     Trie **tmp = &t;
     for (const char *c = k; *c; c++) {
         int i = char_to_index(*c);
@@ -123,7 +109,7 @@ int trie_for_each(const Trie *t, trie_callback call, void *ptr) {
     return r;
 }
 
-int trie_len_callback(const char *c,long val, void *ptr) {
+int trie_len_callback(const char *c, long val, void *ptr) {
     (void)c;
     (void)val;
     int *res = ptr;
