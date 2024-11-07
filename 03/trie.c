@@ -20,8 +20,44 @@ char index_to_char(int i) {
     return -1;
 }
 
+int trie_delete_rec(Trie **t, const char *k) {
+    if (*k == 0) {
+        (*t)->val = 0;
+        for (int i = 0; i < TRIE_SIZE; i++) {
+            if ((*t)->children[i])
+                return 1;
+        }
+        free(*t);
+        *t = NULL;
+        return 0;
+    }
+    int i = char_to_index(*k);
+    int r = trie_delete_rec(&(*t)->children[i], k + 1);
+    if (r)
+        return 1;
+    if ((*t)->val)
+        return 1;
+    for (int i = 0; i < TRIE_SIZE; i++) {
+        if ((*t)->children[i])
+            return 1;
+    }
+    free(*t);
+    *t = NULL;
+
+    return 0;
+}
+
+int trie_delete(Trie *t, const char *k) {
+    if (trie_get(t, k) == 0)
+        return 0;
+    trie_delete_rec(&t->children[char_to_index(*k)], k + 1);
+    return 0;
+}
+
 int trie_set(Trie *t, const char *k, long v) {
-    // TODO: implement pruning zero branches
+    if (v == 0) {
+        return trie_delete(t, k);
+    }
     Trie **tmp = &t;
     for (const char *c = k; *c; c++) {
         int i = char_to_index(*c);
