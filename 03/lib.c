@@ -199,12 +199,18 @@ int monom_parse_str(Monom *p, const char *s) {
 int polynom_print(const Polynom *p) {
     int i = 0;
     while (p) {
+        if (p->cur.coef == 0) {
+            p = p->next;
+            continue;
+        }
         if (i > 0)
             printf(" + ");
         monom_print(stdout, &p->cur);
         i = 1;
         p = p->next;
     };
+    if (i == 0)
+        printf("%f", 0.0);
     printf("\n");
     return S_OK;
 }
@@ -421,6 +427,12 @@ int _polynom_grad_callback(const char *k, long v, void *ptr) {
 }
 /// var - name of singular vector
 int polynom_grad(Polynom *p, const Polynom *a, const char *var) {
-    PolynomGradArg args = {.p = a, .res = p, .var = var};
-    return trie_for_each(&a->cur.vars, _polynom_grad_callback, &args);
+    while (a) {
+        PolynomGradArg args = {.p = a, .res = p, .var = var};
+        int r = trie_for_each(&a->cur.vars, _polynom_grad_callback, &args);
+        if (r)
+            return r;
+        a = a->next;
+    }
+    return 0;
 }

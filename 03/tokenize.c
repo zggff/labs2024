@@ -1,4 +1,5 @@
 #include "tokenize.h"
+#include <stdio.h>
 
 char token_str_getter(char *buf, int *off, void *f) {
     (void)f;
@@ -14,13 +15,16 @@ char token_file_getter(char buf[BUF_SIZE], int *off, void *f_ptr) {
     if (*buf == 0 || *off >= BUF_SIZE) {
         *off = 0;
         long c = fread(buf, 1, BUF_SIZE, f);
-        if (c < BUF_SIZE)
+        if (c < BUF_SIZE) {
             buf[c] = 0;
-        if (c == 0)
+        }
+        if (c == 0) {
             return 0;
+        }
     }
     char res = buf[*off];
-    (*off)++;
+    if (res)
+        (*off)++;
     return res;
 }
 
@@ -146,7 +150,7 @@ int token_parse_str(char ***res, size_t *res_cap, const char *str) {
 }
 
 int token_print_error(FILE *f, const char *tok, const char *exp) {
-    if (*tok)
+    if (tok)
         fprintf(f, "ERROR: expected [%s] got [%s]\n", exp, tok);
     else
         fprintf(f, "ERROR: expected [%s] got none\n", exp);
