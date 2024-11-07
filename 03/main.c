@@ -129,6 +129,9 @@ int handle_eval(Polynom *p, char **toks, int tok_len) {
             polynom_free(&a);
             return S_INVALID_INPUT;
         }
+        bool neg = strcmp(toks[i + 2], "-") == 0;
+        if (neg)
+            i++;
         char *tmp;
         double f = strtod(toks[i + 2], &tmp);
         if (*tmp != 0) {
@@ -140,6 +143,7 @@ int handle_eval(Polynom *p, char **toks, int tok_len) {
             polynom_free(&a);
             return S_INVALID_INPUT;
         }
+        f = neg ? -f : f;
         double *f_ptr = malloc(sizeof(double));
         if (!f_ptr)
             return S_MALLOC;
