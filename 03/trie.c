@@ -119,7 +119,7 @@ int trie_for_each_rec(const Trie *t, trie_callback call, size_t level,
         *buf = new_buf;
     }
     (*buf)[level] = 0;
-    if (t->val > 0) {
+    if (t->val != 0) {
         (*buf)[level] = 0;
         int r = call(*buf, t->val, ptr);
         if (r != S_OK)

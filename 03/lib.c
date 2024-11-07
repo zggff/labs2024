@@ -8,14 +8,14 @@
 #include "lib.h"
 
 int monom_print_callback(const char *k, long val, void *ptr) {
-    (void)ptr;
-    printf(" * %s^%ld", k, val);
+    FILE *f = ptr;
+    fprintf(f, " * %s^%ld", k, val);
     return S_OK;
 }
 
-int monom_print(const Monom *m) {
-    printf("%f", m->coef);
-    int res = trie_for_each(&m->vars, monom_print_callback, NULL);
+int monom_print(FILE *f, const Monom *m) {
+    fprintf(f, "%f", m->coef);
+    int res = trie_for_each(&m->vars, monom_print_callback, f);
     return res;
 }
 
@@ -114,6 +114,14 @@ int polynom_add_monom(Polynom *p, Monom m) {
     return S_OK;
 }
 
+int _monom_validate_callback(const char *k, long v, void *ptr) {
+    bool *res = ptr;
+    if (v < 0)
+        *res = true;
+    (void)k;
+    return 0;
+}
+
 int polynom_parse_tokens(Polynom *p, char **toks, int toks_len, int *off) {
     bool end = false;
     while (!end) {
@@ -121,6 +129,17 @@ int polynom_parse_tokens(Polynom *p, char **toks, int toks_len, int *off) {
         int r = monom_parse_tokens(&m, toks, toks_len, off);
         if (r)
             return r;
+        bool neg = false;
+        trie_for_each(&m.vars, _monom_validate_callback, &neg);
+        if (neg) {
+            fprintf(stderr, "ERROR: monom has powers < 0: {");
+            monom_print(stderr, &m);
+            fprintf(stderr, "}\n");
+            fflush(stderr);
+            polynom_free(p);
+            trie_free(&m.vars);
+            return S_INVALID_INPUT;
+        }
         bool valid = false;
         if (*off >= toks_len || strcmp(toks[*off], ",") == 0 ||
             strcmp(toks[*off], ")") == 0) {
@@ -182,7 +201,7 @@ int polynom_print(const Polynom *p) {
     while (p) {
         if (i > 0)
             printf(" + ");
-        monom_print(&p->cur);
+        monom_print(stdout, &p->cur);
         i = 1;
         p = p->next;
     };
