@@ -31,6 +31,30 @@ assert test(
 fp.close()
 
 fp = tempfile.NamedTemporaryFile()
+fp.writelines([b"a = 1 / 0;"])
+fp.seek(0)
+assert test(
+    "divide by zero 1",
+    [fp.name],
+    1,
+    "",
+    ["ERROR: can not divide by zero"],
+)
+fp.close()
+
+fp = tempfile.NamedTemporaryFile()
+fp.writelines([b"a = 1 % 0;"])
+fp.seek(0)
+assert test(
+    "divide by zero 2",
+    [fp.name],
+    1,
+    "",
+    ["ERROR: can not divide by zero"],
+)
+fp.close()
+
+fp = tempfile.NamedTemporaryFile()
 fp.writelines(
     [
         b"a = 10;",

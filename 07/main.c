@@ -70,8 +70,18 @@ int handle_math(char **toks, int n, Cells *cells) {
     case '*':
         return cells_set(cells, toks[0], a * b);
     case '/':
+        if (b == 0) {
+            fprintf(stderr, "ERROR: can not divide by zero\n");
+            fflush(stderr);
+            return S_INVALID_INPUT;
+        }
         return cells_set(cells, toks[0], a / b);
     case '%':
+        if (b == 0) {
+            fprintf(stderr, "ERROR: can not divide by zero\n");
+            fflush(stderr);
+            return S_INVALID_INPUT;
+        }
         return cells_set(cells, toks[0], a % b);
 
     default:
