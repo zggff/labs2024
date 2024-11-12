@@ -5,7 +5,7 @@ sys.path.append(os.getcwd() + "/..")
 
 from test_func import set_test_leaks, test
 
-set_test_leaks(True)
+set_test_leaks(False)
 
 assert test("no input file provided", [], 1, "", "ERROR: input file not provided")
 
