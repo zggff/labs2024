@@ -81,7 +81,7 @@ def test(
         print(f"FAILURE: non utf8 symbol in output")
         return False
 
-    if p.returncode != status or p.stdout.rstrip() != out.rstrip():
+    if p.returncode != status or p.stdout.splitlines() != out.splitlines():
         print(f"FAILURE:")
         if p.returncode != status:
             print(f"\treturn code: expected {status}, got {p.returncode}")
@@ -92,7 +92,7 @@ def test(
         s = open(ofile).read()
         if isinstance(ofile_val, list):
             ofile_val = "\n".join(ofile_val)
-        if s.rstrip() != ofile_val.rstrip():
+        if s.splitlines() != ofile_val.splitlines():
             print(f"FAILURE: wrong file output")
             cmp_string(s, ofile_val)
             return False
@@ -121,9 +121,9 @@ def cmp_string(s: str, s_exp: str):
     txt = s.splitlines()
     exp = s_exp.splitlines()
     mlen = max(len(txt), len(exp))
-    txt += [""] * (mlen - len(txt))
-    exp += [""] * (mlen - len(exp))
+    txt += [None] * (mlen - len(txt))
+    exp += [None] * (mlen - len(exp))
     for i, (a, b) in enumerate(zip(txt, exp)):
         if a != b:
-            print(f"\tdifference in line {i + 1}: [{a}] < [{b}]")
+            print(f"\tdifference in line {i + 1}: [{repr(a)}] < [{repr(b)}]")
             return
