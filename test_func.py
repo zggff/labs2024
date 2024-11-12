@@ -81,21 +81,21 @@ def test(
         print(f"FAILURE: non utf8 symbol in output")
         return False
 
-    if p.returncode != status:
-        print(f"FAILURE: return code: expected {status}, got {p.returncode}")
+    if p.returncode != status or p.stdout.rstrip() != out.rstrip():
+        print(f"FAILURE:")
+        if p.returncode != status:
+            print(f"\treturn code: expected {status}, got {p.returncode}")
+        cmp_string(p.stdout, out)
         return False
-
-    if p.stdout.splitlines() != out.splitlines():
-        print(f"FAILURE: wrong output")
-        return cmp_string(p.stdout, out)
 
     if ofile is not None and ofile_val is not None:
         s = open(ofile).read()
         if isinstance(ofile_val, list):
             ofile_val = "\n".join(ofile_val)
-        if s.splitlines() != ofile_val.splitlines():
+        if s.rstrip() != ofile_val.rstrip():
             print(f"FAILURE: wrong file output")
-            return cmp_string(s, ofile_val)
+            cmp_string(s, ofile_val)
+            return False
 
     global test_leaks
     if test_leaks:
@@ -117,15 +117,13 @@ def test(
     return True
 
 
-def cmp_string(s: str, s_exp: str) -> bool:
+def cmp_string(s: str, s_exp: str):
     txt = s.splitlines()
     exp = s_exp.splitlines()
-    for i in range(0, min(len(txt), len(exp))):
-        if txt[i] != exp[i]:
-            print(f"\tdifference in line {i + 1}: [{txt[i]}] < [{exp[i]}]")
-            return False
-    if len(txt) > len(exp):
-        print(f"\tdifference in line {len(exp) + 1} [{txt[len(exp)]}] < []")
-    if len(txt) < len(exp):
-        print(f"\tdifference in line {len(txt) + 1} [] < [{exp[len(txt)]}]")
-    return False
+    mlen = max(len(txt), len(exp))
+    txt += [""] * (mlen - len(txt))
+    exp += [""] * (mlen - len(exp))
+    for i, (a, b) in enumerate(zip(txt, exp)):
+        if a != b:
+            print(f"\tdifference in line {i + 1}: [{a}] < [{b}]")
+            return
