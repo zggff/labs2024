@@ -14,7 +14,7 @@ ${TARGET}: ${SOURCES} ${HEADERS}
 	${CC} ${CFLAGS} -o $@ ${SOURCES} 
 
 test: build
-	@pypy3 ./test.py
+	@python3 ./test.py
 
 clean:
 	@rm -f ./*.o

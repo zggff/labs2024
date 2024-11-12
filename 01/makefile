@@ -10,7 +10,7 @@ ${TARGET}: main.c
 	${CC} ${CFLAGS} -o $@ $^
 
 test:
-	@pypy3 ./test.py
+	@python3 ./test.py
 
 clean:
 	@rm -f ./*.o
