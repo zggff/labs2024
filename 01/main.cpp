@@ -125,19 +125,25 @@ class binary_int {
     }
 
     friend std::ostream &operator<<(std::ostream &os, const binary_int &a) {
-        std::string buffer = "0b";
+        char buffer[64] = "0b";
         binary_int shift = 31;
+        binary_int i = 2;
         bool print = false;
         while (shift >= 0) {
             bool bit = (a.val & (1 << shift.val)) != 0;
             if (bit)
                 print = true;
-            if (print)
-                buffer += bit ? '1' : '0';
+            if (print) {
+                buffer[i.val] = bit ? '1' : '0';
+                i++;
+            }
             shift--;
         }
-        if (!print)
-            buffer += "0";
+        if (!print) {
+            buffer[i.val] = '0';
+            i++;
+        }
+        buffer[i.val] = 0;
         os << buffer;
         return os;
     }
