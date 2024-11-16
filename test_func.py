@@ -55,7 +55,7 @@ def test(
     inp: str | List[str],
     out: str | List[str],
     ofile: Optional[str] = None,
-    ofile_val: Optional[str] | Optional[List[str]] = None,
+    ofile_val: Optional[bytes] | Optional[str] | Optional[List[str]] = None,
     prog_name="./main.out",
 ) -> bool:
     global cnt
@@ -89,10 +89,16 @@ def test(
         return False
 
     if ofile is not None and ofile_val is not None:
-        s = open(ofile).read()
         if isinstance(ofile_val, list):
             ofile_val = "\n".join(ofile_val)
-        if s.splitlines() != ofile_val.splitlines():
+        if isinstance(ofile_val, bytes):
+            s = open(ofile, "rb").read()
+            if s != ofile_val:
+                print(f"FAILURE: wrong file output")
+                print(f"[{s.hex()}] < ")
+                print(f"[{ofile_val.hex()}]")
+                return False
+        elif (s := open(ofile).read()).splitlines() != ofile_val.splitlines():
             print(f"FAILURE: wrong file output")
             cmp_string(s, ofile_val)
             return False
