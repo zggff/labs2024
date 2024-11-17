@@ -93,12 +93,12 @@ int char_to_int(char c) {
     return -1;
 }
 
-int main(int argc, char *argw[]) {
+int main(int argc, char *argv[]) {
     if (argc < 2) {
         std::cerr << "ERROR: key not provided" << std::endl;
         return 1;
     }
-    string str_key = argw[1];
+    string str_key = argv[1];
     for (auto &val : str_key) {
         val = tolower(val);
         if (('0' <= val && val <= '9') || ('a' <= val && val <= 'f'))
@@ -125,5 +125,5 @@ int main(int argc, char *argw[]) {
         return 1;
     }
     encoder e(key);
-    return e.encode(argw[2], argw[3]);
+    return e.encode(argv[2], argv[3]);
 }
