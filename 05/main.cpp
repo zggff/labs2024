@@ -1,4 +1,5 @@
 #include <format>
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <regex>
@@ -15,6 +16,7 @@ size_t replace_regex(string &s, const regex &reg) {
 }
 
 string cdecl_translate(string s) {
+    string s_copy = s;
     regex whitespace("^\\s*");
     array types = {"int", "char", "float", "double"};
     size_t pos = 0;
@@ -24,7 +26,7 @@ string cdecl_translate(string s) {
     regex type_rg("^\\w+");
     bool found = regex_search(s, matches, type_rg);
     if (!found) {
-        return format("Syntax error at position {}", pos);
+        return format("Syntax error in {} at position {}", s_copy, pos);
     }
     string type = *matches.begin();
     if (std::find(types.begin(), types.end(), type) == types.end())
@@ -42,7 +44,7 @@ string cdecl_translate(string s) {
     regex name_rg("^[a-zA-Z_]\\w*");
     found = regex_search(s, matches, name_rg);
     if (!found) {
-        return format("Syntax error at position {}", pos);
+        return format("Syntax error in {} at position {}", s_copy, pos);
     }
     string name = *matches.begin();
     pos += replace_regex(s, name_rg);
@@ -67,12 +69,12 @@ string cdecl_translate(string s) {
     }
 
     if (s.empty() || s.front() != ';') {
-        return format("Syntax error at position {}. Expected ;", pos);
+        return format("Syntax error in {} at position {}", s_copy, pos);
     }
     pos++;
     s.erase(0);
     if (!s.empty())
-        return format("Syntax error at position {}", pos);
+        return format("Syntax error in {} at position {}", s_copy, pos);
 
     string res = format("declare {} as ", name);
     for (auto size : array_sizes)
@@ -83,7 +85,22 @@ string cdecl_translate(string s) {
     return res;
 }
 
-int main(void) {
-    std::cout << cdecl_translate(" char** name[10][4];") << std::endl;
+int main(int argc, char *argv[]) {
+    if (argc < 2) {
+        std::cerr << "ERROR: input file not provided" << std::endl;
+        return 1;
+    }
+    std::ifstream inp(argv[1]);
+    if (inp.fail()) {
+        std::cerr << "ERROR: failed to open file [" << argv[1] << "]"
+                  << std::endl;
+        return 1;
+    }
+    std::string line;
+    while (getline(inp, line)) {
+        std::cout << cdecl_translate(line) << std::endl;
+    }
+    inp.close();
+
     return 0;
 }
