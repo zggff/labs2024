@@ -30,11 +30,11 @@ string cdecl_translate(string s) {
     }
     string type = *matches.begin();
     if (std::find(types.begin(), types.end(), type) == types.end())
-        return "Invalid type: [" + type + "]";
+        return "Invalid type: '" + type + "'";
     pos += replace_regex(s, type_rg);
     pos += replace_regex(s, whitespace);
 
-    regex brackets_regx("\\(.*\\)\\s*(;|\\()");
+    regex brackets_regx("^\\(.*\\)\\s*(;|\\()");
     bool brackets_open = regex_search(s, matches, brackets_regx);
     if (brackets_open) {
         pos++;
