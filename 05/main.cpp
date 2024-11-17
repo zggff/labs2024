@@ -18,7 +18,9 @@ size_t replace_regex(string &s, const regex &reg) {
 string cdecl_translate(string s) {
     string s_copy = s;
     regex whitespace("^\\s*");
-    array types = {"int", "char", "float", "double"};
+    // TODO: handle other types such as long long
+    array types = {"int",      "char",  "float", "double",
+                   "unsigned", "short", "long"};
     size_t pos = 0;
     pos += replace_regex(s, whitespace);
 
