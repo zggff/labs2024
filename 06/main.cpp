@@ -68,15 +68,32 @@ class vector {
         }
         return ptr[index];
     }
+    const double &at(size_t index) const {
+        if (index >= len) {
+            throw std::out_of_range("");
+        }
+        return ptr[index];
+    }
     double &front() {
         return ptr[0];
     }
+    const double &front() const {
+        return ptr[0];
+    }
+
     double &back() {
+        return ptr[len - 1];
+    }
+    const double &back() const {
         return ptr[len - 1];
     }
     double *data() {
         return ptr;
     }
+    const double *data() const {
+        return ptr;
+    }
+
     bool empty() const {
         return len == 0;
     }
@@ -160,10 +177,10 @@ class vector {
         return this->operator<=>(b) == std::partial_ordering::equivalent;
     }
 
-    iterator begin() {
+    iterator begin() const {
         return ptr;
     }
-    iterator end() {
+    iterator end() const {
         return ptr + len;
     }
 
@@ -182,6 +199,8 @@ class vector {
         this->reserve(l.size());
         for (auto val : l)
             this->push_back(val);
+    }
+    vector(const vector &v) : vector(v.begin(), v.end()) {
     }
     ~vector() {
         if (ptr)
