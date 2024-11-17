@@ -96,7 +96,7 @@ class BuildingMaterial : public Product {
   public:
     bool flammability;
     double calculateStorageFee() const override {
-        return Product::calculateStorageFee() * (1.5 * flammability);
+        return Product::calculateStorageFee() * (1 + 0.5 * flammability);
     }
     BuildingMaterial(string name, string id, double weight, double price,
                      unsigned daysStored, bool flammability)
@@ -215,12 +215,35 @@ class Warehouse {
 };
 
 int main(void) {
-    Warehouse w;
-    Product p("product", "21", 12.4, 42, 12);
-    PerishableProduct pp("Perishable", "12", 12.4, 42, 12, 42);
-    ElectronicProduct ep("Electronic", "elec", 12.4, 42, 12, 2, 4);
-    w.addProduct(pp);
-    w.addProduct(ep);
-    w.displayInventory();
+    {
+        Warehouse w;
+        w += PerishableProduct("Perishable", "12", 12.4, 42, 12, 42);
+        w += PerishableProduct("Perishable2", "122", 12.9, 42, 14, 19);
+        w += ElectronicProduct("Electronic", "elec", 12.4, 42, 12, 2, 4);
+        w += BuildingMaterial("Building", "cc", 12.4, 42, 12, false);
+        std::cout << w.totalPrice() << std::endl;
+        w.displayInventory();
+        w -= "cc";
+        std::cout << w.totalPrice() << std::endl;
+        w.displayInventory();
+        std::cout << "expire after 1\n";
+        auto perished = w.getExpiringProducts(1);
+        for (auto v : perished) {
+            std::cout << *v;
+        }
+        std::cout << "expire after 10\n";
+        perished = w.getExpiringProducts(10);
+        for (auto v : perished) {
+            std::cout << *v;
+        }
+        std::cout << "expire after 30\n";
+        perished = w.getExpiringProducts(30);
+        for (auto v : perished) {
+            std::cout << *v;
+        }
+        std::cout << "Warehouse[\"elec\"] = {\n\t"
+                  << *dynamic_cast<ElectronicProduct *>(w["elec"]) << "}"
+                  << std::endl;
+    }
     return 0;
 }
