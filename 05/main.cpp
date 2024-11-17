@@ -34,7 +34,7 @@ string cdecl_translate(string s) {
     pos += replace_regex(s, type_rg);
     pos += replace_regex(s, whitespace);
 
-    regex brackets_regx("\\([^())]*\\)\\s*(;|\\()");
+    regex brackets_regx("\\(.*\\)\\s*(;|\\()");
     bool brackets_open = regex_search(s, matches, brackets_regx);
     if (brackets_open) {
         pos++;
@@ -78,6 +78,15 @@ string cdecl_translate(string s) {
     if (brackets_open) {
         pos++;
         s = s.substr(1);
+    }
+    pos += replace_regex(s, whitespace);
+
+    regex func_ptr_rg("^\\(.*\\)");
+    bool is_function = regex_search(s, matches, func_ptr_rg);
+    if (is_function) {
+        type = "function returning " + type;
+        pos += replace_regex(s, func_ptr_rg);
+        pos += replace_regex(s, whitespace);
     }
 
     if (s.empty() || s.front() != ';') {
