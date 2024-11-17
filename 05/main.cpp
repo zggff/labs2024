@@ -26,13 +26,20 @@ string cdecl_translate(string s) {
     regex type_rg("^\\w+");
     bool found = regex_search(s, matches, type_rg);
     if (!found) {
-        return format("Syntax error in {} at position {}", s_copy, pos);
+        return format("Syntax error in '{}' at position {}", s_copy, pos);
     }
     string type = *matches.begin();
     if (std::find(types.begin(), types.end(), type) == types.end())
         return "Invalid type: [" + type + "]";
     pos += replace_regex(s, type_rg);
     pos += replace_regex(s, whitespace);
+
+    regex brackets_regx("\\([^())]*\\)\\s*(;|\\()");
+    bool brackets_open = regex_search(s, matches, brackets_regx);
+    if (brackets_open) {
+        pos++;
+        s = s.substr(1);
+    }
 
     regex pointer_rg("^\\**");
     found = regex_search(s, matches, pointer_rg);
@@ -44,7 +51,7 @@ string cdecl_translate(string s) {
     regex name_rg("^[a-zA-Z_]\\w*");
     found = regex_search(s, matches, name_rg);
     if (!found) {
-        return format("Syntax error in {} at position {}", s_copy, pos);
+        return format("Syntax error in '{}' at position {}", s_copy, pos);
     }
     string name = *matches.begin();
     pos += replace_regex(s, name_rg);
@@ -68,13 +75,18 @@ string cdecl_translate(string s) {
         pos += replace_regex(s, whitespace);
     }
 
+    if (brackets_open) {
+        pos++;
+        s = s.substr(1);
+    }
+
     if (s.empty() || s.front() != ';') {
-        return format("Syntax error in {} at position {}", s_copy, pos);
+        return format("Syntax error in '{}' at position {}", s_copy, pos);
     }
     pos++;
-    s.erase(0);
+    s = s.substr(1);
     if (!s.empty())
-        return format("Syntax error in {} at position {}", s_copy, pos);
+        return format("Syntax error in '{}' at position {}", s_copy, pos);
 
     string res = format("declare {} as ", name);
     for (auto size : array_sizes)
