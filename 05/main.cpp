@@ -119,6 +119,8 @@ int main(int argc, char *argv[]) {
     }
     std::string line;
     while (getline(inp, line)) {
+        if (line.empty())
+            continue;
         std::cout << cdecl_translate(line) << std::endl;
     }
     inp.close();
