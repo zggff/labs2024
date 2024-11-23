@@ -15,3 +15,4 @@ test:
 clean:
 	@rm -f ./*.o
 	@rm -f ${TARGET}
+	@rm -rf ${TARGET}.dSYM
